@@ -1,0 +1,268 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Authentication ────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  DRIVER
+  CUSTOMER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  driverId String? @unique
+  driver   Driver? @relation(fields: [driverId], references: [id])
+
+  customerId String?   @unique
+  customer   Customer? @relation(fields: [customerId], references: [id])
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model DriverLeave {
+  id        String      @id @default(uuid())
+  driverId  String
+  driver    Driver      @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  startDate DateTime
+  endDate   DateTime
+  reason    String
+  status    LeaveStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+// ─── Driver Enums ────────────────────────────────────────
+
+enum DriverStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+  TERMINATED
+  SUSPENDED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  CONTRACT
+  FREELANCE
+}
+
+// Saudi license categories per Muroor (Traffic Dept)
+enum LicenseType {
+  PRIVATE // Light vehicles
+  PUBLIC_LIGHT // Taxi / public transport (light)
+  PUBLIC_HEAVY // Bus / public transport (heavy)
+  HEAVY_EQUIPMENT // Heavy trucks, trailers
+  MOTORCYCLE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum BloodGroup {
+  A_POS
+  A_NEG
+  B_POS
+  B_NEG
+  O_POS
+  O_NEG
+  AB_POS
+  AB_NEG
+}
+
+enum MedicalFitness {
+  FIT
+  UNFIT
+  PENDING
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+// Saudi-specific: residency type
+enum ResidencyType {
+  SAUDI_NATIONAL
+  IQAMA_HOLDER // Expat with residence permit
+  VISIT_VISA // Temporary
+  TRANSIT
+}
+
+enum VisaType {
+  WORK_VISA
+  VISIT_VISA
+  TRANSIT_VISA
+  HAJJ_UMRAH
+  PREMIUM_RESIDENCY // Saudi Green Card equivalent
+}
+
+// ─── Driver Model ────────────────────────────────────────
+
+model Driver {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── Personal Information ──
+  employeeId      String      @unique // Auto-generated: DRV-001
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  gender          Gender?
+  bloodGroup      BloodGroup?
+  nationality     String? // e.g. "Indian", "Pakistani", "Bangladeshi", "Saudi"
+  profilePhotoUrl String?
+
+  // ── Saudi ID & Residency ──
+  residencyType    ResidencyType @default(IQAMA_HOLDER)
+  iqamaNumber      String?       @unique // Iqama (residence permit) for expats
+  iqamaExpiryDate  DateTime? // ⚠️ Critical compliance
+  nationalIdNumber String?       @unique // Saudi national ID (for citizens)
+  sponsorName      String? // Kafeel / sponsor company
+  borderNumber     String? // Border entry number
+
+  // ── Passport (most drivers are expats) ──
+  passportNumber         String?   @unique
+  passportIssuingCountry String?
+  passportIssueDate      DateTime?
+  passportExpiryDate     DateTime? // ⚠️ Critical compliance
+  visaType               VisaType?
+  visaExpiryDate         DateTime? // ⚠️ Critical compliance
+
+  // ── Contact Details ──
+  phone            String
+  alternatePhone   String?
+  email            String?
+  currentAddress   String // Saudi address
+  permanentAddress String? // Home country address
+  city             String? // e.g. Riyadh, Jeddah, Dammam
+  region           String? // Saudi region/province
+  postalCode       String? // Saudi postal code (5 digits)
+
+  // ── Emergency Contact ──
+  emergencyContactName     String
+  emergencyContactPhone    String
+  emergencyContactRelation String
+
+  // ── Employment Details ──
+  dateOfJoining     DateTime
+  employmentType    EmploymentType @default(FULL_TIME)
+  status            DriverStatus   @default(ACTIVE)
+  department        String?
+  salary            Float? // SAR monthly
+  bankName          String? // e.g. Al Rajhi, SNB, Alinma
+  ibanNumber        String? // Saudi IBAN (SA + 22 digits)
+  gosiNumber        String? // GOSI social insurance number
+  terminationDate   DateTime?
+  terminationReason String?
+  notes             String?
+
+  // ── Saudi Driving License ──
+  licenseNumber           String      @unique
+  licenseType             LicenseType @default(HEAVY_EQUIPMENT)
+  licenseIssuingAuthority String? // Muroor region
+  licenseIssueDate        DateTime
+  licenseExpiryDate       DateTime // ⚠️ Critical compliance
+  hazmatCertified         Boolean     @default(false)
+  defensiveDrivingCert    Boolean     @default(false)
+
+  // ── Transport Authority Registration ──
+  waselRegistrationNumber String? // MOT WASEL platform
+  tgaCardNumber           String? // TGA (Transport General Authority) card
+  tgaCardExpiry           DateTime? // ⚠️ Compliance
+
+  // ── Medical & Fitness ──
+  medicalCertificateUrl  String?
+  medicalCertExpiry      DateTime? // ⚠️ Compliance
+  medicalFitness         MedicalFitness     @default(PENDING)
+  knownMedicalConditions String?
+  drugTestDate           DateTime? // Mandatory in KSA
+  drugTestResult         VerificationStatus @default(PENDING)
+
+  // ── Background & Compliance ──
+  backgroundCheckStatus    VerificationStatus @default(PENDING)
+  backgroundCheckDate      DateTime?
+  saudiPoliceCheck         VerificationStatus @default(PENDING) // Saudi police clearance
+  saudiPoliceCheckDate     DateTime?
+  homeCountryClearance     VerificationStatus @default(PENDING) // Home country police clearance
+  homeCountryClearanceDate DateTime?
+  saherViolations          Int                @default(0) // Count of SAHER traffic violations
+
+  // ── Relations ──
+  orders Order[]
+  user   User?
+  leaves DriverLeave[]
+}
+
+// ─── Other Models ────────────────────────────────────────
+
+model Vehicle {
+  id           String   @id @default(uuid())
+  make         String
+  model        String
+  licensePlate String   @unique
+  capacity     Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders Order[]
+}
+
+model Customer {
+  id            String   @id @default(uuid())
+  companyName   String
+  contactPerson String
+  email         String   @unique
+  phone         String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  orders Order[]
+  user   User?
+}
+
+enum OrderStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+}
+
+model Order {
+  id                String      @id @default(uuid())
+  customerId        String
+  customer          Customer    @relation(fields: [customerId], references: [id])
+  pickupLocation    String
+  dropoffLocation   String
+  assignedDriverId  String?
+  driver            Driver?     @relation(fields: [assignedDriverId], references: [id])
+  assignedVehicleId String?
+  vehicle           Vehicle?    @relation(fields: [assignedVehicleId], references: [id])
+  status            OrderStatus @default(PENDING)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
