@@ -213,23 +213,266 @@ model Driver {
   saherViolations          Int                @default(0) // Count of SAHER traffic violations
 
   // ── Relations ──
-  orders Order[]
-  user   User?
-  leaves DriverLeave[]
+  orders         Order[]
+  user           User?
+  leaves         DriverLeave[]
+  primaryVehicle Vehicle? @relation("PrimaryVehicle")
 }
 
-// ─── Other Models ────────────────────────────────────────
+// ─── Vehicle Enums ────────────────────────────────────────
+
+enum VehicleStatus {
+  ACTIVE
+  IN_MAINTENANCE
+  OUT_OF_SERVICE
+  DECOMMISSIONED
+  RESERVED
+}
+
+// Vehicle types are now dynamic — stored in VehicleCategory model
+model VehicleCategory {
+  id          String   @id @default(uuid())
+  slug        String   @unique   // e.g. RIGID_TRUCK
+  name        String              // e.g. "Rigid Truck"
+  description String?
+  icon        String?             // Emoji or icon identifier
+  isDefault   Boolean  @default(false) // System-provided type
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum FuelType {
+  DIESEL
+  PETROL
+  HYBRID
+  ELECTRIC
+  CNG   // Compressed natural gas
+  LPG   // Liquified petroleum gas
+}
+
+enum InsuranceType {
+  COMPREHENSIVE
+  THIRD_PARTY
+  AGAINST_OTHERS  // Saudi standard "against others"
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  EMERGENCY
+  SCHEDULED
+  OVERHAUL
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+enum DocumentType {
+  ISTIMARA             // Vehicle registration
+  INSURANCE_POLICY
+  TGA_OPERATION_CARD   // TGA commercial authorization
+  MVPI_CERTIFICATE     // Motor Vehicle Periodic Inspection
+  WASEL_CERTIFICATE    // WASEL platform enrollment
+  CUSTOMS_CLEARANCE
+  WEIGHT_CERTIFICATE
+  HAZMAT_PERMIT
+  ROUTE_PERMIT
+  SPEED_LIMITER_CERT
+  OTHER
+}
+
+// ─── Vehicle Model ────────────────────────────────────────
 
 model Vehicle {
-  id           String   @id @default(uuid())
-  make         String
-  model        String
-  licensePlate String   @unique
-  capacity     Float
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  orders Order[]
+  // ── Identification ──
+  fleetNumber  String        @unique  // Internal fleet ID: VH-001
+  make         String                 // e.g. Mercedes, Isuzu, Hino
+  model        String                 // e.g. Actros 2645
+  year         Int?                   // Manufacturing year
+  color        String?
+  vehicleType  String        @default("RIGID_TRUCK")  // References VehicleCategory.slug
+  status       VehicleStatus @default(ACTIVE)
+  photoUrl     String?
+
+  // ── Saudi Registration (Istimara) ──
+  licensePlate      String   @unique  // Saudi plate: e.g. أ ب ج 1234
+  chassisNumber     String?  @unique  // VIN / Chassis number
+  engineNumber      String?
+  istimaraNumber    String?  @unique  // Registration serial
+  istimaraExpiry    DateTime?         // ⚠️ Critical compliance
+  registrationCity  String?           // Muroor branch city
+
+  // ── Capacity & Dimensions ──
+  capacity          Float              // Payload capacity (tons)
+  grossVehicleWeight Float?            // GVW in kg
+  netWeight          Float?            // Tare weight in kg
+  numberOfAxles      Int?
+  lengthMeters       Float?            // Overall length
+  widthMeters        Float?
+  heightMeters       Float?            // Max height (limit: 4.8m in KSA)
+
+  // ── Engine & Fuel ──
+  fuelType          FuelType  @default(DIESEL)
+  tankCapacityLiters Float?
+  engineCapacityCC   Int?              // Engine displacement
+  transmissionType   String?           // Manual / Automatic
+  horsePower         Int?
+
+  // ── Saudi Regulatory ──
+  tgaOperationCardNumber String?       // TGA commercial operation card
+  tgaOperationCardExpiry DateTime?     // ⚠️ Compliance
+  waselTrackerId         String?       // WASEL GPS tracker ID
+  waselConnected         Boolean  @default(false)
+  speedLimiterInstalled  Boolean  @default(false)
+  speedLimitKmh          Int?          // Max allowed speed (90/100/80 by type)
+
+  // ── Insurance ──
+  insuranceProvider   String?
+  insurancePolicyNo   String?
+  insuranceType       InsuranceType? @default(COMPREHENSIVE)
+  insuranceStartDate  DateTime?
+  insuranceExpiryDate DateTime?       // ⚠️ Compliance
+
+  // ── MVPI (Fahes / Periodic Inspection) ──
+  lastMvpiDate    DateTime?           // Last inspection
+  nextMvpiDate    DateTime?           // ⚠️ Compliance
+  mvpiStation     String?             // Inspection station name
+  mvpiResult      String?             // PASS / FAIL
+
+  // ── Odometer & Usage ──
+  currentOdometerKm   Float   @default(0)
+  lastOdometerUpdate  DateTime?
+  averageDailyKm      Float?
+
+  // ── Maintenance Schedule ──
+  nextServiceDueKm    Float?           // Km-based service interval
+  nextServiceDueDate  DateTime?        // Date-based service interval
+  tireChangeKm        Float?           // Next tire rotation/change
+  oilChangeKm         Float?           // Next oil change interval
+
+  // ── Assignment ──
+  assignedDriverId String?  @unique        // Primary assigned driver
+  assignedDriver   Driver?  @relation("PrimaryVehicle", fields: [assignedDriverId], references: [id])
+
+  notes String?
+
+  // ── Relations ──
+  orders              Order[]
+  maintenanceRecords  MaintenanceRecord[]
+  fuelLogs            FuelLog[]
+  vehicleDocuments    VehicleDocument[]
+  inspections         VehicleInspection[]
+}
+
+// ─── Maintenance Records ────────────────────────────────────
+
+model MaintenanceRecord {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicleId    String
+  vehicle      Vehicle          @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  type         MaintenanceType  @default(PREVENTIVE)
+  status       MaintenanceStatus @default(SCHEDULED)
+  title        String                      // Brief description
+  description  String?                     // Detailed work description
+  scheduledDate DateTime?
+  startDate     DateTime?
+  completedDate DateTime?
+  odometerAtService Float?                 // Km at time of service
+
+  // ── Cost ──
+  laborCostSar    Float?                   // Labor cost in SAR
+  partsCostSar    Float?                   // Parts cost in SAR
+  totalCostSar    Float?                   // Total cost in SAR
+  vendor          String?                  // Workshop / service provider
+  invoiceNumber   String?
+  warrantyUntil   DateTime?
+
+  // ── Parts Replaced ──
+  partsReplaced   String?                  // JSON or comma-separated list
+
+  // ── Next Service ──
+  nextServiceDate DateTime?
+  nextServiceKm   Float?
+
+  notes String?
+}
+
+// ─── Fuel Logs ────────────────────────────────────
+
+model FuelLog {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  vehicleId  String
+  vehicle    Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  date         DateTime
+  fuelType     FuelType  @default(DIESEL)
+  liters       Float
+  costPerLiter Float?               // SAR per liter
+  totalCostSar Float?               // Total fill cost
+  odometerKm   Float?               // Odometer at fill
+  station      String?              // Gas station name
+  driverName   String?              // Who fueled
+  fullTank     Boolean  @default(true)
+
+  notes String?
+}
+
+// ─── Vehicle Documents ────────────────────────────────────
+
+model VehicleDocument {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicleId    String
+  vehicle      Vehicle       @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  documentType DocumentType
+  title        String
+  fileUrl      String?               // Uploaded file path/URL
+  issueDate    DateTime?
+  expiryDate   DateTime?             // ⚠️ Tracked for compliance
+  issuedBy     String?               // Issuing authority
+  referenceNo  String?               // Document reference number
+
+  notes String?
+}
+
+// ─── Vehicle Inspections (pre-trip / post-trip) ────────────
+
+model VehicleInspection {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  vehicleId    String
+  vehicle      Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  inspectionType String  @default("PRE_TRIP") // PRE_TRIP / POST_TRIP / SPOT_CHECK
+  inspectedBy    String?                      // Driver or inspector name
+  date           DateTime
+
+  // ── Checklist Results (stored as JSON) ──
+  checklistJson  String?                      // JSON: { tires: "PASS", brakes: "PASS", ... }
+  overallResult  String   @default("PASS")    // PASS / FAIL / NEEDS_ATTENTION
+  failReasons    String?                      // If FAIL, what failed
+  odometerKm     Float?
+
+  notes String?
 }
 
 model Customer {

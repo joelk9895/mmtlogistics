@@ -238,7 +238,7 @@ function DriverDetail({ driver, onClose, onEdit }: { driver: any; onClose: () =>
           {/* Leave Management & Calendar */}
           <div className="mb-6">
             <h3 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider mb-3 pb-2 border-b border-[var(--border)]">Schedule & Leave</h3>
-            
+
             {loadingSchedule ? (
               <div className="text-sm text-[var(--muted)]">Loading schedule...</div>
             ) : (
@@ -256,13 +256,13 @@ function DriverDetail({ driver, onClose, onEdit }: { driver: any; onClose: () =>
                             <p className="text-xs text-[var(--muted)] mt-1">{leave.reason}</p>
                           </div>
                           <div className="flex gap-2">
-                            <button 
+                            <button
                               onClick={() => handleUpdateLeave(leave.id, 'APPROVED')}
                               className="px-3 py-1 bg-green-500/10 text-green-600 hover:bg-green-500/20 rounded text-xs font-semibold transition-colors"
                             >
                               Approve
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleUpdateLeave(leave.id, 'REJECTED')}
                               className="px-3 py-1 bg-red-500/10 text-red-600 hover:bg-red-500/20 rounded text-xs font-semibold transition-colors"
                             >
@@ -274,7 +274,7 @@ function DriverDetail({ driver, onClose, onEdit }: { driver: any; onClose: () =>
                     </div>
                   </div>
                 )}
-                
+
                 <DriverCalendar orders={scheduleData.orders} leaves={scheduleData.leaves} />
               </div>
             )}
@@ -321,9 +321,8 @@ function DriverDetail({ driver, onClose, onEdit }: { driver: any; onClose: () =>
                             <span className="text-[var(--foreground)]">{order.dropoffLocation}</span>
                           </td>
                           <td className="px-3 py-2 text-xs font-mono text-[var(--muted)]">{order.vehicle?.licensePlate || '—'}</td>
-                          <td className={`px-3 py-2 text-[10px] font-medium uppercase tracking-wider ${
-                            order.status === 'DELIVERED' ? 'text-[var(--success)]' : order.status === 'IN_TRANSIT' ? 'text-[var(--accent)]' : order.status === 'CANCELLED' ? 'text-[var(--destructive)]' : 'text-[var(--warning)]'
-                          }`}>{order.status?.replace('_', ' ')}</td>
+                          <td className={`px-3 py-2 text-[10px] font-medium uppercase tracking-wider ${order.status === 'DELIVERED' ? 'text-[var(--success)]' : order.status === 'IN_TRANSIT' ? 'text-[var(--accent)]' : order.status === 'CANCELLED' ? 'text-[var(--destructive)]' : 'text-[var(--warning)]'
+                            }`}>{order.status?.replace('_', ' ')}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -432,10 +431,10 @@ export default function DriversPage() {
   const handleEdit = (driver: any) => {
     setSelectedDriver(null);
     setEditingDriverId(driver.id);
-    
+
     // Format dates to YYYY-MM-DD for input[type="date"]
     const toDateStr = (d: any) => d ? new Date(d).toISOString().split('T')[0] : '';
-    
+
     // Sanitize driver so null fields fallback to initialForm default or empty string
     const sanitized = { ...initialForm };
     for (const key of Object.keys(initialForm) as (keyof typeof initialForm)[]) {
@@ -466,7 +465,7 @@ export default function DriversPage() {
       saudiPoliceCheckDate: toDateStr(driver.saudiPoliceCheckDate),
       homeCountryClearanceDate: toDateStr(driver.homeCountryClearanceDate),
     });
-    
+
     setIsFormOpen(true);
     setActiveTab('Personal');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -533,17 +532,17 @@ export default function DriversPage() {
   const unavailableCount = drivers.filter(d => d.status === 'ON_LEAVE' || d.status === 'SUSPENDED').length;
   const expiringDocsCount = drivers.filter(d => {
     return _isExpiring30(d.licenseExpiryDate) || _isExpired(d.licenseExpiryDate) ||
-           _isExpiring30(d.iqamaExpiryDate) || _isExpired(d.iqamaExpiryDate) ||
-           _isExpiring30(d.passportExpiryDate) || _isExpired(d.passportExpiryDate) ||
-           _isExpiring30(d.visaExpiryDate) || _isExpired(d.visaExpiryDate) ||
-           _isExpiring30(d.tgaCardExpiry) || _isExpired(d.tgaCardExpiry) ||
-           _isExpiring30(d.medicalCertExpiry) || _isExpired(d.medicalCertExpiry);
+      _isExpiring30(d.iqamaExpiryDate) || _isExpired(d.iqamaExpiryDate) ||
+      _isExpiring30(d.passportExpiryDate) || _isExpired(d.passportExpiryDate) ||
+      _isExpiring30(d.visaExpiryDate) || _isExpired(d.visaExpiryDate) ||
+      _isExpiring30(d.tgaCardExpiry) || _isExpired(d.tgaCardExpiry) ||
+      _isExpiring30(d.medicalCertExpiry) || _isExpired(d.medicalCertExpiry);
   }).length;
   const complianceAlertDrivers = drivers.filter(d => {
     return d.backgroundCheckStatus === 'FAILED' || d.backgroundCheckStatus === 'PENDING' ||
-           d.saudiPoliceCheck === 'FAILED' || d.saudiPoliceCheck === 'PENDING' ||
-           d.homeCountryClearance === 'FAILED' || d.homeCountryClearance === 'PENDING' ||
-           d.drugTestResult === 'FAILED';
+      d.saudiPoliceCheck === 'FAILED' || d.saudiPoliceCheck === 'PENDING' ||
+      d.homeCountryClearance === 'FAILED' || d.homeCountryClearance === 'PENDING' ||
+      d.drugTestResult === 'FAILED';
   });
 
   // ── CSV Export ──
@@ -571,11 +570,11 @@ export default function DriversPage() {
 
   // ── Filter & Sort & Paginate ──
   let filteredDrivers = drivers.filter(d => {
-    const matchesSearch = (d.firstName + ' ' + d.lastName).toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          d.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (d.iqamaNumber && d.iqamaNumber.includes(searchQuery)) ||
-                          (d.phone && d.phone.includes(searchQuery)) ||
-                          (d.nationality && d.nationality.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesSearch = (d.firstName + ' ' + d.lastName).toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.employeeId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (d.iqamaNumber && d.iqamaNumber.includes(searchQuery)) ||
+      (d.phone && d.phone.includes(searchQuery)) ||
+      (d.nationality && d.nationality.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = statusFilter === 'ALL' || d.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -619,14 +618,14 @@ export default function DriversPage() {
         <div className="flex items-center gap-3">
           {!isFormOpen && (
             <div className="flex bg-[var(--surface)] p-1 rounded-md border border-[var(--border)]">
-              <button 
-                onClick={() => setViewMode('list')} 
+              <button
+                onClick={() => setViewMode('list')}
                 className={`px-3 py-1.5 text-xs font-medium rounded ${viewMode === 'list' ? 'bg-[var(--background)] shadow-sm' : 'text-[var(--muted)] hover:text-[var(--foreground)]'}`}
               >
                 List View
               </button>
-              <button 
-                onClick={() => setViewMode('schedule')} 
+              <button
+                onClick={() => setViewMode('schedule')}
                 className={`px-3 py-1.5 text-xs font-medium rounded ${viewMode === 'schedule' ? 'bg-[var(--background)] shadow-sm' : 'text-[var(--muted)] hover:text-[var(--foreground)]'}`}
               >
                 Schedule View
@@ -634,22 +633,21 @@ export default function DriversPage() {
             </div>
           )}
           <button
-            onClick={() => { 
+            onClick={() => {
               if (isFormOpen) {
                 setIsFormOpen(false);
                 setEditingDriverId(null);
                 setFormData({ ...initialForm });
               } else {
-                setIsFormOpen(true); 
-                setActiveTab('Personal'); 
-                setError(''); 
+                setIsFormOpen(true);
+                setActiveTab('Personal');
+                setError('');
                 setEditingDriverId(null);
                 setFormData({ ...initialForm });
               }
             }}
-            className={`text-sm font-medium px-4 py-2 rounded-md transition-colors duration-150 ${
-              isFormOpen ? 'bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--border)]' : 'bg-[var(--foreground)] text-[var(--background)] hover:opacity-90'
-            }`}
+            className={`text-sm font-medium px-4 py-2 rounded-md transition-colors duration-150 ${isFormOpen ? 'bg-[var(--surface)] text-[var(--foreground)] hover:bg-[var(--border)]' : 'bg-[var(--foreground)] text-[var(--background)] hover:opacity-90'
+              }`}
           >
             {isFormOpen ? 'Cancel' : 'Add Driver'}
           </button>
@@ -703,11 +701,10 @@ export default function DriversPage() {
                       <span className="font-medium shrink-0">{d.firstName} {d.lastName}</span>
                       <span className="text-[var(--muted)] text-xs leading-relaxed">
                         {getComplianceIssues(d).map((issue, i) => (
-                          <span key={i} className={`inline-block mr-1.5 mb-1 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider ${
-                            issue.includes('expired') || issue.includes('failed') 
-                              ? 'text-[var(--destructive)] bg-[var(--destructive)]/10' 
+                          <span key={i} className={`inline-block mr-1.5 mb-1 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider ${issue.includes('expired') || issue.includes('failed')
+                              ? 'text-[var(--destructive)] bg-[var(--destructive)]/10'
                               : 'text-[var(--warning)] bg-[var(--warning)]/10'
-                          }`}>
+                            }`}>
                             {issue}
                           </span>
                         ))}
@@ -759,11 +756,10 @@ export default function DriversPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors ${
-                  activeTab === tab
+                className={`px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors ${activeTab === tab
                     ? 'text-[var(--foreground)] border-b-2 border-[var(--accent)] -mb-px'
                     : 'text-[var(--muted)] hover:text-[var(--foreground)]'
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -793,14 +789,14 @@ export default function DriversPage() {
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <Field label="Profile Photo">
-                    <input 
-                      type="file" 
+                    <input
+                      type="file"
                       accept="image/*"
                       className="w-full text-sm text-[var(--muted)] file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[var(--surface)] file:text-[var(--foreground)] hover:file:bg-[var(--border)] cursor-pointer"
                       onChange={e => {
                         const file = e.target.files?.[0];
                         if (file) setPhotoFile(file);
-                      }} 
+                      }}
                     />
                   </Field>
                   <Field label="Gender">
@@ -1175,94 +1171,93 @@ export default function DriversPage() {
 
       {!isFormOpen && viewMode === 'list' && (
         <div className="border border-[var(--border)] rounded-lg overflow-hidden bg-[var(--card)]">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[var(--border)]">
-              <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('employeeId')}>ID {sortConfig?.key === 'employeeId' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('name')}>Driver {sortConfig?.key === 'name' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Phone</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('nationality')}>Nationality {sortConfig?.key === 'nationality' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Tenure</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('licenseExpiryDate')}>License Exp. {sortConfig?.key === 'licenseExpiryDate' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('status')}>Status {sortConfig?.key === 'status' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
-              <th className="text-center px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('compliance')}>Compliance {sortConfig?.key === 'compliance' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-[var(--muted)]">Loading...</td></tr>
-            ) : paginatedDrivers.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-[var(--muted)]">{drivers.length === 0 ? 'No drivers registered. Click "Add Driver" to get started.' : 'No drivers match your search.'}</td></tr>
-            ) : (
-              paginatedDrivers.map((driver, i) => {
-                const compliance = getComplianceLevel(driver);
-                const complianceDotColor = compliance === 'critical' ? 'bg-[var(--destructive)]' : compliance === 'warning' ? 'bg-[var(--warning)]' : 'bg-[var(--success)]';
-                const complianceLabel = compliance === 'critical' ? 'Critical' : compliance === 'warning' ? 'Warning' : 'Clear';
-                return (
-                  <tr
-                    key={driver.id}
-                    onClick={() => setSelectedDriver(driver)}
-                    className={`hover:bg-[var(--surface)] transition-colors duration-100 cursor-pointer ${i < paginatedDrivers.length - 1 ? 'border-b border-[var(--border)]' : ''}`}
-                  >
-                    <td className="px-4 py-3 text-sm font-mono text-xs text-[var(--accent)]">{driver.employeeId}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        {driver.profilePhotoUrl ? (
-                          <img src={driver.profilePhotoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-[var(--border)]" />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[10px] font-semibold text-[var(--muted)]">
-                            {driver.firstName?.[0]}{driver.lastName?.[0]}
-                          </div>
-                        )}
-                        <span className="text-sm font-medium">{driver.firstName} {driver.lastName}</span>
-                        {driver._count?.leaves > 0 && (
-                          <span 
-                            title={`${driver._count.leaves} pending leave request(s)`}
-                            className="bg-[var(--warning)] text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold shadow-sm"
-                          >
-                            {driver._count.leaves}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-[var(--muted)] tabular-nums">{driver.phone}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--muted)]">{driver.nationality || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--muted)] tabular-nums">{getTenure(driver.dateOfJoining)}</td>
-                    <td className="px-4 py-3 text-sm tabular-nums">
-                      <span className={_isExpired(driver.licenseExpiryDate) ? 'text-[var(--destructive)]' : _isExpiring30(driver.licenseExpiryDate) ? 'text-[var(--warning)]' : 'text-[var(--muted)]'}>
-                        {new Date(driver.licenseExpiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
-                    </td>
-                    <td className={`px-4 py-3 text-xs font-medium uppercase tracking-wider ${STATUS_COLORS[driver.status] || ''}`}>
-                      {driver.status?.replace('_', ' ')}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className="inline-flex items-center gap-1.5" title={getComplianceIssues(driver).join(', ') || 'All clear'}>
-                        <span className={`w-2 h-2 rounded-full ${complianceDotColor}`} />
-                        <span className={`text-[10px] font-medium uppercase tracking-wider ${
-                          compliance === 'critical' ? 'text-[var(--destructive)]' : compliance === 'warning' ? 'text-[var(--warning)]' : 'text-[var(--success)]'
-                        }`}>{complianceLabel}</span>
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-        {totalPages > 1 && (
-          <div className="border-t border-[var(--border)] px-4 py-3 flex items-center justify-between bg-[var(--surface)]">
-            <p className="text-xs text-[var(--muted)]">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDrivers.length)} of {filteredDrivers.length} drivers
-            </p>
-            <div className="flex gap-1">
-              <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="px-2.5 py-1 border border-[var(--border)] rounded text-xs disabled:opacity-50 hover:bg-[var(--border)] transition-colors">← Prev</button>
-              <span className="px-2.5 py-1 text-xs text-[var(--muted)] tabular-nums">{currentPage} / {totalPages}</span>
-              <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="px-2.5 py-1 border border-[var(--border)] rounded text-xs disabled:opacity-50 hover:bg-[var(--border)] transition-colors">Next →</button>
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[var(--border)]">
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('employeeId')}>ID {sortConfig?.key === 'employeeId' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('name')}>Driver {sortConfig?.key === 'name' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Phone</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('nationality')}>Nationality {sortConfig?.key === 'nationality' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Tenure</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('licenseExpiryDate')}>License Exp. {sortConfig?.key === 'licenseExpiryDate' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('status')}>Status {sortConfig?.key === 'status' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+                <th className="text-center px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider cursor-pointer hover:text-[var(--foreground)] select-none" onClick={() => handleSort('compliance')}>Compliance {sortConfig?.key === 'compliance' ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-[var(--muted)]">Loading...</td></tr>
+              ) : paginatedDrivers.length === 0 ? (
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-[var(--muted)]">{drivers.length === 0 ? 'No drivers registered. Click "Add Driver" to get started.' : 'No drivers match your search.'}</td></tr>
+              ) : (
+                paginatedDrivers.map((driver, i) => {
+                  const compliance = getComplianceLevel(driver);
+                  const complianceDotColor = compliance === 'critical' ? 'bg-[var(--destructive)]' : compliance === 'warning' ? 'bg-[var(--warning)]' : 'bg-[var(--success)]';
+                  const complianceLabel = compliance === 'critical' ? 'Critical' : compliance === 'warning' ? 'Warning' : 'Clear';
+                  return (
+                    <tr
+                      key={driver.id}
+                      onClick={() => setSelectedDriver(driver)}
+                      className={`hover:bg-[var(--surface)] transition-colors duration-100 cursor-pointer ${i < paginatedDrivers.length - 1 ? 'border-b border-[var(--border)]' : ''}`}
+                    >
+                      <td className="px-4 py-3 text-sm font-mono text-xs text-[var(--accent)]">{driver.employeeId}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          {driver.profilePhotoUrl ? (
+                            <img src={driver.profilePhotoUrl} alt="" className="w-7 h-7 rounded-full object-cover border border-[var(--border)]" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[10px] font-semibold text-[var(--muted)]">
+                              {driver.firstName?.[0]}{driver.lastName?.[0]}
+                            </div>
+                          )}
+                          <span className="text-sm font-medium">{driver.firstName} {driver.lastName}</span>
+                          {driver._count?.leaves > 0 && (
+                            <span
+                              title={`${driver._count.leaves} pending leave request(s)`}
+                              className="bg-[var(--warning)] text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold shadow-sm"
+                            >
+                              {driver._count.leaves}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-[var(--muted)] tabular-nums">{driver.phone}</td>
+                      <td className="px-4 py-3 text-sm text-[var(--muted)]">{driver.nationality || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-[var(--muted)] tabular-nums">{getTenure(driver.dateOfJoining)}</td>
+                      <td className="px-4 py-3 text-sm tabular-nums">
+                        <span className={_isExpired(driver.licenseExpiryDate) ? 'text-[var(--destructive)]' : _isExpiring30(driver.licenseExpiryDate) ? 'text-[var(--warning)]' : 'text-[var(--muted)]'}>
+                          {new Date(driver.licenseExpiryDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </td>
+                      <td className={`px-4 py-3 text-xs font-medium uppercase tracking-wider ${STATUS_COLORS[driver.status] || ''}`}>
+                        {driver.status?.replace('_', ' ')}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="inline-flex items-center gap-1.5" title={getComplianceIssues(driver).join(', ') || 'All clear'}>
+                          <span className={`w-2 h-2 rounded-full ${complianceDotColor}`} />
+                          <span className={`text-[10px] font-medium uppercase tracking-wider ${compliance === 'critical' ? 'text-[var(--destructive)]' : compliance === 'warning' ? 'text-[var(--warning)]' : 'text-[var(--success)]'
+                            }`}>{complianceLabel}</span>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+          {totalPages > 1 && (
+            <div className="border-t border-[var(--border)] px-4 py-3 flex items-center justify-between bg-[var(--surface)]">
+              <p className="text-xs text-[var(--muted)]">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredDrivers.length)} of {filteredDrivers.length} drivers
+              </p>
+              <div className="flex gap-1">
+                <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="px-2.5 py-1 border border-[var(--border)] rounded text-xs disabled:opacity-50 hover:bg-[var(--border)] transition-colors">← Prev</button>
+                <span className="px-2.5 py-1 text-xs text-[var(--muted)] tabular-nums">{currentPage} / {totalPages}</span>
+                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="px-2.5 py-1 border border-[var(--border)] rounded text-xs disabled:opacity-50 hover:bg-[var(--border)] transition-colors">Next →</button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       )}
 
       {/* ── Detail Modal ── */}

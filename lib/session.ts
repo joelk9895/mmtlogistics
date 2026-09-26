@@ -25,7 +25,7 @@ export async function decrypt(input: string): Promise<SessionPayload | null> {
     const { payload } = await jwtVerify(input, key, {
       algorithms: ['HS256'],
     });
-    return payload as unknown as SessionPayload;
+    return payload as SessionPayload;
   } catch (error) {
     return null; // Invalid or expired token
   }
