@@ -80,41 +80,6 @@ export default function DriverDashboard() {
     router.push('/login');
   };
 
-  const prevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
-
-  // Calendar logic
-  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay();
-
-  const getEventsForDay = (day: number) => {
-    const targetDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    targetDate.setHours(0, 0, 0, 0);
-
-    const dayOrders = orders.filter((o) => {
-      const orderDate = new Date(o.createdAt);
-      return (
-        orderDate.getFullYear() === targetDate.getFullYear() &&
-        orderDate.getMonth() === targetDate.getMonth() &&
-        orderDate.getDate() === targetDate.getDate()
-      );
-    });
-
-    const dayLeaves = leaves.filter((l) => {
-      const start = new Date(l.startDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(l.endDate);
-      end.setHours(23, 59, 59, 999);
-      return targetDate >= start && targetDate <= end;
-    });
-
-    return { orders: dayOrders, leaves: dayLeaves };
-  };
 
   return (
     <div className="min-h-screen bg-[var(--background)] p-8">
