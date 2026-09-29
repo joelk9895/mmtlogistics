@@ -849,12 +849,6 @@ export default function VehiclesPage() {
 
   // Vehicle Categories
   const [categories, setCategories] = useState<VehicleCategory[]>([]);
-  const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
-  const [newCatName, setNewCatName] = useState('');
-  const [newCatIcon, setNewCatIcon] = useState('🚛');
-  const [newCatDesc, setNewCatDesc] = useState('');
-  const [savingCategory, setSavingCategory] = useState(false);
-  const [categoryError, setCategoryError] = useState('');
 
   const initialForm: Record<string, string | boolean> = {
     make: '', model: '', year: '', color: '', vehicleType: 'RIGID_TRUCK', photoUrl: '',
@@ -908,48 +902,6 @@ export default function VehiclesPage() {
     fetchCategories();
   }, []);
   useEffect(() => { setLoading(true); fetchVehicles(); }, [searchQuery, filterStatus, filterType]);
-
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCatName.trim()) return;
-    setSavingCategory(true);
-    setCategoryError('');
-    try {
-      const res = await fetch('/api/vehicles/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newCatName.trim(),
-          icon: newCatIcon.trim() || '🚛',
-          description: newCatDesc.trim() || null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to add vehicle type');
-      setNewCatName('');
-      setNewCatDesc('');
-      fetchCategories();
-    } catch (err) {
-      setCategoryError(err instanceof Error ? err.message : 'Error adding category');
-    } finally {
-      setSavingCategory(false);
-    }
-  };
-
-  const handleDeleteCategory = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to remove vehicle type "${name}"?`)) return;
-    try {
-      const res = await fetch(`/api/vehicles/categories/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(data.error || 'Failed to delete category');
-        return;
-      }
-      fetchCategories();
-    } catch (e) {
-      console.error(e);
-    }
-  };
 
   const typeDisplayMap: Record<string, string> = {
     ...VEHICLE_TYPES,
@@ -1048,12 +1000,6 @@ export default function VehiclesPage() {
           </p>
         </div>
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => setIsCategoriesModalOpen(true)}
-            className="text-sm font-medium px-3.5 py-2 rounded-md bg-[var(--surface)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--border)] transition-colors flex items-center gap-1.5"
-          >
-            <span>🏷️</span> Manage Types
-          </button>
           <button
             onClick={() => { setIsFormOpen(!isFormOpen); if (isFormOpen) { setEditingId(null); setFormData(initialForm); setFormTab('Identity'); } }}
             className={`text-sm font-medium px-4 py-2 rounded-md transition-colors duration-150 ${
@@ -1504,126 +1450,6 @@ export default function VehiclesPage() {
 
       {/* ── Detail Modal ── */}
       {selectedVehicle && <VehicleDetail vehicle={selectedVehicle} onClose={() => setSelectedVehicle(null)} onRefresh={fetchVehicles} />}
-
-      {/* ── Manage Vehicle Types Modal ── */}
-      {isCategoriesModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-6 py-4 border-b border-[var(--border)] flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold">Manage Vehicle Types</h3>
-                <p className="text-xs text-[var(--muted)]">Configure fleet categories and add custom vehicle types</p>
-              </div>
-              <button
-                onClick={() => setIsCategoriesModalOpen(false)}
-                className="w-8 h-8 rounded-md flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
-              {/* Add New Category Form */}
-              <form onSubmit={handleAddCategory} className="p-4 rounded-lg bg-[var(--surface)] border border-[var(--border)] space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">+ Add New Vehicle Type</h4>
-                {categoryError && (
-                  <div className="p-2 rounded bg-red-500/10 border border-red-500/20 text-xs text-red-400">
-                    {categoryError}
-                  </div>
-                )}
-                <div className="grid grid-cols-4 gap-2">
-                  <div className="col-span-1">
-                    <label className="block text-[11px] text-[var(--muted)] mb-1">Icon</label>
-                    <input
-                      type="text"
-                      value={newCatIcon}
-                      onChange={e => setNewCatIcon(e.target.value)}
-                      className={`${inputClass} text-center text-lg`}
-                      maxLength={4}
-                      placeholder="🚛"
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <label className="block text-[11px] text-[var(--muted)] mb-1">Type Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newCatName}
-                      onChange={e => setNewCatName(e.target.value)}
-                      className={inputClass}
-                      placeholder="e.g. Electric Delivery Van"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[11px] text-[var(--muted)] mb-1">Description (Optional)</label>
-                  <input
-                    type="text"
-                    value={newCatDesc}
-                    onChange={e => setNewCatDesc(e.target.value)}
-                    className={inputClass}
-                    placeholder="Short description of this vehicle class..."
-                  />
-                </div>
-                <div className="flex justify-end pt-1">
-                  <button
-                    type="submit"
-                    disabled={savingCategory}
-                    className="text-xs font-medium px-4 py-2 rounded-md bg-[var(--foreground)] text-[var(--background)] hover:opacity-90 transition-opacity disabled:opacity-50"
-                  >
-                    {savingCategory ? 'Adding...' : 'Create Vehicle Type'}
-                  </button>
-                </div>
-              </form>
-
-              {/* Existing Categories List */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">Active Types ({categories.length})</h4>
-                <div className="divide-y divide-[var(--border)] border border-[var(--border)] rounded-lg overflow-hidden">
-                  {categories.map((cat) => (
-                    <div key={cat.id} className="p-3 flex items-center justify-between bg-[var(--card)] hover:bg-[var(--surface)] transition-colors">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-lg">{cat.icon || '🚛'}</span>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{cat.name}</span>
-                            {cat.isDefault ? (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-zinc-500/10 text-zinc-400">Default</span>
-                            ) : (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500/10 text-blue-400">Custom</span>
-                            )}
-                          </div>
-                          {cat.description && (
-                            <p className="text-xs text-[var(--muted)] mt-0.5">{cat.description}</p>
-                          )}
-                        </div>
-                      </div>
-                      {!cat.isDefault && (
-                        <button
-                          onClick={() => handleDeleteCategory(cat.id, cat.name)}
-                          className="text-xs text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-500/10 transition-colors"
-                          title="Delete category"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="px-6 py-3 border-t border-[var(--border)] bg-[var(--surface)] flex justify-end">
-              <button
-                onClick={() => setIsCategoriesModalOpen(false)}
-                className="text-xs font-medium px-4 py-2 rounded-md bg-[var(--surface)] text-[var(--foreground)] border border-[var(--border)] hover:bg-[var(--border)] transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

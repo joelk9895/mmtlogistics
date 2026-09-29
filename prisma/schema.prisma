@@ -239,6 +239,74 @@ model VehicleCategory {
   isDefault   Boolean  @default(false) // System-provided type
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // ── Classification ──
+  vehicleClass     String?   // LIGHT, MEDIUM, HEAVY, SUPER_HEAVY, EQUIPMENT
+  bodyType         String?   // BOX, FLATBED, TANKER, REFRIGERATED, CURTAINSIDE, LOWBED, TIPPER, CHASSIS, VAN, PICKUP, CRANE, FORKLIFT, EXCAVATOR, BOOM_LIFT, etc.
+  primaryUse       String?   // FREIGHT, PASSENGER, CONSTRUCTION, MATERIAL_HANDLING, LIFTING, EARTHMOVING, SPECIALIZED, SUPPORT
+
+  // ── Capacity Defaults ──
+  minPayloadTons   Float?    // Minimum payload capacity for this type
+  maxPayloadTons   Float?    // Maximum payload capacity for this type
+  maxGvwKg         Float?    // Max Gross Vehicle Weight (kg)
+  palletCapacity   Int?      // Max standard pallet count (EUR/GCC)
+  volumeCapacityM3 Float?    // Cargo volume capacity (m³)
+
+  // ── Dimensions (typical range for this type) ──
+  typicalLengthM   Float?    // Typical overall length (meters)
+  typicalWidthM    Float?    // Typical width (meters)
+  typicalHeightM   Float?    // Typical height (meters)
+  maxHeightM       Float?    // Max height allowed in KSA (4.8m general)
+  maxLengthM       Float?    // Max length allowed by Saudi road law
+
+  // ── Axle & Wheel Configuration ──
+  axleConfig       String?   // e.g. "4x2", "6x4", "8x4"
+  minAxles         Int?
+  maxAxles         Int?
+  typicalWheelCount Int?
+
+  // ── Engine & Fuel Defaults ──
+  defaultFuelType    String?  // DIESEL, PETROL, ELECTRIC, CNG, LPG, HYBRID
+  minEnginePowerHp   Int?
+  maxEnginePowerHp   Int?
+  transmissionTypes  String?  // Comma-separated: MANUAL,AUTOMATIC,AMT
+
+  // ── Saudi Regulatory Constraints ──
+  requiresTgaCard    Boolean @default(false)  // Needs TGA operation card
+  requiresWasel      Boolean @default(false)  // WASEL GPS tracking mandatory
+  requiresSpeedLimiter Boolean @default(false)
+  defaultSpeedLimitKmh Int?                    // Default speed limit for this type
+  minDriverLicenseType String?                 // Minimum Saudi license category required
+  requiresHazmatCert   Boolean @default(false) // Driver needs hazmat certification
+  requiresMvpiFrequency String?               // MVPI inspection frequency: ANNUAL, BIANNUAL
+
+  // ── Operational Attributes ──
+  temperatureControlled Boolean @default(false) // Reefer / cold chain
+  minTempCelsius       Float?                   // Min temp if temperature controlled
+  maxTempCelsius       Float?                   // Max temp range
+  adrClass             String?                  // Dangerous goods class if applicable
+  canCarryHazmat       Boolean @default(false)
+  canCarryLivestock    Boolean @default(false)
+  canCarryOversized    Boolean @default(false)
+  requiresCrane        Boolean @default(false)  // Has/requires onboard crane
+  requiresTailLift     Boolean @default(false)  // Has/requires tail lift
+
+  // ── Cost & Maintenance Defaults ──
+  estimatedDailyRateSar Float?   // Default daily rental/operational rate (SAR)
+  typicalServiceIntervalKm Float? // Default service interval in km
+  typicalServiceIntervalDays Int?  // Default service interval in days
+  estimatedFuelConsumption Float? // L/100km typical
+  tireSizeSpec           String?  // Typical tire spec e.g. "315/80R22.5"
+  numberOfTires          Int?
+
+  // ── Insurance & Compliance ──
+  insuranceCategory     String?  // Insurance classification tier
+  defaultInsuranceType  String?  // COMPREHENSIVE, THIRD_PARTY, AGAINST_OTHERS
+
+  // ── Display & Sorting ──
+  sortOrder             Int      @default(0)  // Display order in UI
+  colorHex              String?  // Brand color for UI cards
+  isActive              Boolean  @default(true) // Soft-disable without deleting
 }
 
 enum FuelType {

@@ -8,6 +8,7 @@ const navItems = [
   { name: 'Overview', href: '/admin', icon: '⌘' },
   { name: 'Drivers', href: '/admin/drivers', icon: '◉' },
   { name: 'Vehicles', href: '/admin/vehicles', icon: '▣' },
+  { name: 'Vehicle Types', href: '/admin/vehicles/types', icon: '⬡' },
   { name: 'Customers', href: '/admin/customers', icon: '◎' },
   { name: 'Orders', href: '/admin/orders', icon: '▦' },
 ];
