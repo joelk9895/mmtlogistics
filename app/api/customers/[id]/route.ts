@@ -39,12 +39,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const body = await request.json();
 
     const stringFields = [
-      'companyName', 'companyNameAr', 'tradeName',
+      'companyName', 'companyNameAr', 'tradeName', 'division', 'brand',
+      'customerSubType',
       'contactPerson', 'contactTitle', 'email', 'phone', 'alternatePhone', 'whatsapp',
       'additionalContacts',
-      'crNumber', 'vatNumber', 'zakatCertNumber', 'nationalAddress',
-      'billingAddress', 'billingCity', 'billingRegion', 'billingPostalCode', 'billingCountry',
+      'crNumber', 'vatNumber', 'vatTreatment', 'zakatCertNumber', 'nationalAddress',
+      'billingAttention', 'billingAddress', 'billingStreet2', 'billingDistrict', 'billingCity', 'billingRegion', 'billingPostalCode', 'billingAdditionalNumber', 'billingCountry',
       'shippingAddress', 'shippingCity', 'shippingRegion', 'shippingPostalCode', 'shippingCountry',
+      'paymentTermsLabel',
       'bankName', 'ibanNumber', 'currency',
       'specialRateCard', 'contractDocUrl',
       'preferredVehicleTypes', 'defaultPickupCity', 'defaultDeliveryCity',
@@ -53,14 +55,45 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     ];
 
     const dateFields = ['crExpiryDate', 'zakatCertExpiry', 'contractStartDate', 'contractEndDate'];
-    const floatFields = ['creditLimitSar', 'currentBalanceSar', 'discountPercent'];
+    const floatFields = ['creditLimitSar', 'openingBalance', 'currentBalanceSar', 'discountPercent'];
     const boolFields = ['requiresColdChain', 'requiresHazmat', 'requiresInsuredCargo'];
 
     const data: any = {};
 
+    // Support camelCase as well as aliases
+    const aliases: Record<string, string[]> = {
+      companyName: ['Company Name'],
+      companyNameAr: ['Company Name (Secondary Language)', 'company_name_ar'],
+      division: ['DIVISION', 'Division'],
+      brand: ['Brand'],
+      customerSubType: ['Customer Sub Type', 'Customer Subtype', 'customer_sub_type'],
+      crNumber: ['CR NUMBER -', 'CR NUMBER', 'CR Number', 'cr_number'],
+      vatNumber: ['Tax Registration Number', 'taxRegistrationNumber', 'tax_registration_number', 'TRN', 'vat_number'],
+      vatTreatment: ['VAT Treatment', 'vat_treatment'],
+      billingAttention: ['Billing Attention', 'billing_attention'],
+      billingAddress: ['Billing Address', 'billing_address'],
+      billingStreet2: ['Billing Street2', 'Billing Street 2', 'billing_street2'],
+      billingDistrict: ['Billing District', 'billing_district'],
+      billingCity: ['Billing City', 'billing_city'],
+      billingRegion: ['Billing State', 'Billing Region', 'billing_state', 'billing_region'],
+      billingPostalCode: ['Billing Code', 'Billing Postal Code', 'billing_code', 'billing_postal_code'],
+      billingAdditionalNumber: ['Billing Additional Number', 'billing_additional_number'],
+      billingCountry: ['Billing County', 'Billing Country', 'billing_country', 'billing_county'],
+      paymentTermsLabel: ['Payment Terms Label', 'payment_terms_label'],
+      creditLimitSar: ['Credit Limit', 'credit_limit', 'creditLimit'],
+      openingBalance: ['Opening Balance', 'opening_balance'],
+    };
+
     for (const f of stringFields) {
       if (body[f] !== undefined) {
         data[f] = body[f]?.trim?.() || null;
+      } else if (aliases[f]) {
+        for (const alias of aliases[f]) {
+          if (body[alias] !== undefined) {
+            data[f] = body[alias]?.trim?.() || null;
+            break;
+          }
+        }
       }
     }
 
@@ -69,12 +102,34 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       if (body[f] !== undefined) data[f] = body[f] || null;
     }
 
+    // Normalizing payment terms if passed as string (e.g. "Net 30")
+    if (body['Payment Terms'] !== undefined && !body.paymentTerms) {
+      const ptNorm = String(body['Payment Terms']).toUpperCase().replace(/[\s-]+/g, '_');
+      if (['CASH', 'COD', 'NET_15', 'NET_30', 'NET_45', 'NET_60', 'NET_90', 'PREPAID', 'CREDIT'].includes(ptNorm)) {
+        data.paymentTerms = ptNorm;
+      } else if (ptNorm.includes('30')) data.paymentTerms = 'NET_30';
+      else if (ptNorm.includes('15')) data.paymentTerms = 'NET_15';
+      else if (ptNorm.includes('45')) data.paymentTerms = 'NET_45';
+      else if (ptNorm.includes('60')) data.paymentTerms = 'NET_60';
+      else if (ptNorm.includes('90')) data.paymentTerms = 'NET_90';
+      else if (ptNorm.includes('COD') || ptNorm.includes('DELIVERY')) data.paymentTerms = 'COD';
+      else if (ptNorm.includes('PREPAID') || ptNorm.includes('ADVANCE')) data.paymentTerms = 'PREPAID';
+      else if (ptNorm.includes('CASH')) data.paymentTerms = 'CASH';
+    }
+
     for (const f of dateFields) {
       if (body[f] !== undefined) data[f] = body[f] ? new Date(body[f]) : null;
     }
     for (const f of floatFields) {
       if (body[f] !== undefined) {
-        data[f] = body[f] !== '' && body[f] !== null ? parseFloat(body[f]) : null;
+        data[f] = body[f] !== '' && body[f] !== null ? parseFloat(String(body[f]).replace(/,/g, '')) : null;
+      } else if (aliases[f]) {
+        for (const alias of aliases[f]) {
+          if (body[alias] !== undefined) {
+            data[f] = body[alias] !== '' && body[alias] !== null ? parseFloat(String(body[alias]).replace(/,/g, '')) : null;
+            break;
+          }
+        }
       }
     }
     for (const f of boolFields) {

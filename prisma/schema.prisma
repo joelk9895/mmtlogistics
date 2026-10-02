@@ -600,16 +600,20 @@ model Customer {
   // ── Company Identity ──
   accountNumber   String         @unique  // Auto-generated: CUS-001
   companyName     String
-  companyNameAr   String?                  // Arabic company name
+  companyNameAr   String?                  // Arabic company name (Secondary Language)
   tradeName       String?                  // DBA / trading name
+  division        String?                  // DIVISION
+  brand           String?                  // Brand
   customerType    CustomerType   @default(CORPORATE)
+  customerSubType String?                  // Customer Sub Type
   status          CustomerStatus @default(ACTIVE)
   industryType    IndustryType?
 
-  // ── Saudi Commercial Registration ──
+  // ── Saudi Commercial Registration & Tax ──
   crNumber        String?        @unique   // Commercial Registration (سجل تجاري)
   crExpiryDate    DateTime?                // ⚠️ Compliance
-  vatNumber       String?        @unique   // ZATCA VAT number (15 digits)
+  vatNumber       String?        @unique   // ZATCA VAT number / Tax Registration Number (15 digits)
+  vatTreatment    String?                  // VAT Treatment (e.g. VAT Registered, Non-VAT, etc.)
   zakatCertNumber String?                  // Zakat & Tax certificate
   zakatCertExpiry DateTime?                // ⚠️ Compliance
   nationalAddress String?                  // Saudi National Address (short code)
@@ -625,12 +629,16 @@ model Customer {
   // ── Additional Contacts (JSON) ──
   additionalContacts String?               // JSON array: [{ name, title, email, phone, role }]
 
-  // ── Billing Address ──
-  billingAddress   String?
-  billingCity      String?                 // e.g. Riyadh, Jeddah, Dammam
-  billingRegion    String?                 // Saudi region/province
-  billingPostalCode String?                // 5-digit Saudi postal code
-  billingCountry   String?      @default("SA")
+  // ── Billing Address (ZATCA & ERP Compatible) ──
+  billingAttention        String?          // Billing Attention (Name/Dept)
+  billingAddress          String?          // Billing Address (Street line 1)
+  billingStreet2          String?          // Billing Street2 (Street line 2)
+  billingDistrict         String?          // Billing District (الحي)
+  billingCity             String?          // e.g. Riyadh, Jeddah, Dammam
+  billingRegion           String?          // Billing State / Region / Province
+  billingPostalCode       String?          // Billing Code / Postal Code (5 digits)
+  billingAdditionalNumber String?          // Billing Additional Number (الرقم الإضافي - 4 digits)
+  billingCountry          String?      @default("SA")
 
   // ── Shipping / Operations Address ──
   shippingAddress   String?
@@ -640,19 +648,21 @@ model Customer {
   shippingCountry   String?     @default("SA")
 
   // ── Financial & Payment ──
-  paymentTerms     PaymentTerms @default(NET_30)
-  creditLimitSar   Float?                 // Credit limit in SAR
-  currentBalanceSar Float?      @default(0) // Outstanding balance
-  bankName         String?
-  ibanNumber       String?                // Saudi IBAN (SA + 22 digits)
-  currency         String?      @default("SAR")
+  paymentTerms      PaymentTerms @default(NET_30)
+  paymentTermsLabel String?                 // Payment Terms Label (custom label)
+  creditLimitSar    Float?                 // Credit limit in SAR
+  openingBalance    Float?       @default(0) // Opening Balance
+  currentBalanceSar Float?       @default(0) // Outstanding / current balance
+  bankName          String?
+  ibanNumber        String?                // Saudi IBAN (SA + 22 digits)
+  currency          String?      @default("SAR")
 
   // ── Pricing & Rates ──
-  discountPercent  Float?       @default(0) // Default discount %
-  specialRateCard  String?                  // JSON: custom rates per route/service
+  discountPercent   Float?       @default(0) // Default discount %
+  specialRateCard   String?                  // JSON: custom rates per route/service
   contractStartDate DateTime?
   contractEndDate   DateTime?              // ⚠️ Renewal tracking
-  contractDocUrl   String?                 // Uploaded contract file
+  contractDocUrl    String?                 // Uploaded contract file
 
   // ── Service Preferences ──
   preferredVehicleTypes String?             // Comma-separated slugs

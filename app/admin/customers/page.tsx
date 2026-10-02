@@ -23,12 +23,16 @@ type Customer = {
   companyName: string;
   companyNameAr: string | null;
   tradeName: string | null;
+  division: string | null;
+  brand: string | null;
   customerType: string;
+  customerSubType: string | null;
   status: string;
   industryType: string | null;
   crNumber: string | null;
   crExpiryDate: string | null;
   vatNumber: string | null;
+  vatTreatment: string | null;
   zakatCertNumber: string | null;
   zakatCertExpiry: string | null;
   nationalAddress: string | null;
@@ -39,10 +43,14 @@ type Customer = {
   alternatePhone: string | null;
   whatsapp: string | null;
   additionalContacts: string | null;
+  billingAttention: string | null;
   billingAddress: string | null;
+  billingStreet2: string | null;
+  billingDistrict: string | null;
   billingCity: string | null;
   billingRegion: string | null;
   billingPostalCode: string | null;
+  billingAdditionalNumber: string | null;
   billingCountry: string | null;
   shippingAddress: string | null;
   shippingCity: string | null;
@@ -50,7 +58,9 @@ type Customer = {
   shippingPostalCode: string | null;
   shippingCountry: string | null;
   paymentTerms: string;
+  paymentTermsLabel: string | null;
   creditLimitSar: number | null;
+  openingBalance: number | null;
   currentBalanceSar: number | null;
   bankName: string | null;
   ibanNumber: string | null;
@@ -75,6 +85,7 @@ type Customer = {
   website: string | null;
   createdAt: string;
   updatedAt: string;
+  orders?: any[];
   _count?: { orders: number };
 };
 
@@ -206,18 +217,18 @@ function Toggle({ label, description, checked, onChange }: { label: string; desc
 // ── Initial Form ──
 
 const initialForm = {
-  // Company
-  companyName: '', companyNameAr: '', tradeName: '', customerType: 'CORPORATE', status: 'ACTIVE', industryType: '',
-  // Saudi CR
-  crNumber: '', crExpiryDate: '', vatNumber: '', zakatCertNumber: '', zakatCertExpiry: '', nationalAddress: '',
+  // Company & Hierarchy
+  companyName: '', companyNameAr: '', tradeName: '', division: '', brand: '', customerType: 'CORPORATE', customerSubType: '', status: 'ACTIVE', industryType: '',
+  // Saudi CR & Tax
+  crNumber: '', crExpiryDate: '', vatNumber: '', vatTreatment: 'VAT Registered', zakatCertNumber: '', zakatCertExpiry: '', nationalAddress: '',
   // Contact
   contactPerson: '', contactTitle: '', email: '', phone: '', alternatePhone: '', whatsapp: '',
   // Billing
-  billingAddress: '', billingCity: '', billingRegion: '', billingPostalCode: '', billingCountry: 'SA',
+  billingAttention: '', billingAddress: '', billingStreet2: '', billingDistrict: '', billingCity: '', billingRegion: '', billingPostalCode: '', billingAdditionalNumber: '', billingCountry: 'SA',
   // Shipping
   shippingAddress: '', shippingCity: '', shippingRegion: '', shippingPostalCode: '', shippingCountry: 'SA',
   // Financial
-  paymentTerms: 'NET_30', creditLimitSar: '', currentBalanceSar: '', bankName: '', ibanNumber: '', currency: 'SAR',
+  paymentTerms: 'NET_30', paymentTermsLabel: '', creditLimitSar: '', openingBalance: '', currentBalanceSar: '', bankName: '', ibanNumber: '', currency: 'SAR',
   discountPercent: '', contractStartDate: '', contractEndDate: '', contractDocUrl: '',
   // Services
   preferredVehicleTypes: '', requiresColdChain: false, requiresHazmat: false, requiresInsuredCargo: false,
@@ -485,6 +496,17 @@ export default function CustomersPage() {
                   </Field>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
+                  <Field label="Division" hint="Operating division / unit">
+                    <input className={inputClass} value={formData.division} onChange={e => set('division', e.target.value)} placeholder="Logistics Division" />
+                  </Field>
+                  <Field label="Brand">
+                    <input className={inputClass} value={formData.brand} onChange={e => set('brand', e.target.value)} placeholder="SET Cargo" />
+                  </Field>
+                  <Field label="Customer Sub-Type" hint="Classification">
+                    <input className={inputClass} value={formData.customerSubType} onChange={e => set('customerSubType', e.target.value)} placeholder="Key Account / Direct" />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
                   <Field label="Customer Type">
                     <select className={inputClass} value={formData.customerType} onChange={e => set('customerType', e.target.value)}>
                       {CUSTOMER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -506,7 +528,7 @@ export default function CustomersPage() {
                 {/* Saudi Registration */}
                 <div className="pt-2">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-3 flex items-center gap-2">
-                    <Shield className="w-3.5 h-3.5" /> Saudi Commercial Registration
+                    <Shield className="w-3.5 h-3.5" /> Saudi Commercial Registration & Tax
                   </h3>
                   <div className="grid grid-cols-3 gap-4">
                     <Field label="CR Number" hint="سجل تجاري (10 digits)">
@@ -515,18 +537,27 @@ export default function CustomersPage() {
                     <Field label="CR Expiry Date">
                       <input type="date" className={inputClass} value={formData.crExpiryDate} onChange={e => set('crExpiryDate', e.target.value)} />
                     </Field>
-                    <Field label="VAT Number" hint="ZATCA VAT (15 digits)">
+                    <Field label="VAT / Tax Reg Number" hint="ZATCA TRN (15 digits)">
                       <input className={inputClass} value={formData.vatNumber} onChange={e => set('vatNumber', e.target.value)} placeholder="300012345600003" maxLength={15} />
                     </Field>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div className="grid grid-cols-4 gap-4 mt-4">
+                    <Field label="VAT Treatment" hint="Tax status">
+                      <select className={inputClass} value={formData.vatTreatment} onChange={e => set('vatTreatment', e.target.value)}>
+                        <option value="VAT Registered">VAT Registered</option>
+                        <option value="Non-VAT Registered">Non-VAT Registered</option>
+                        <option value="Zero Rated">Zero Rated</option>
+                        <option value="GCC VAT Registered">GCC VAT Registered</option>
+                        <option value="Exempt">Exempt</option>
+                      </select>
+                    </Field>
                     <Field label="Zakat Certificate">
                       <input className={inputClass} value={formData.zakatCertNumber} onChange={e => set('zakatCertNumber', e.target.value)} placeholder="Certificate number" />
                     </Field>
                     <Field label="Zakat Cert Expiry">
                       <input type="date" className={inputClass} value={formData.zakatCertExpiry} onChange={e => set('zakatCertExpiry', e.target.value)} />
                     </Field>
-                    <Field label="National Address" hint="Saudi short code">
+                    <Field label="National Address Short Code" hint="Saudi short code">
                       <input className={inputClass} value={formData.nationalAddress} onChange={e => set('nationalAddress', e.target.value)} placeholder="RXXX1234" />
                     </Field>
                   </div>
@@ -702,11 +733,22 @@ export default function CustomersPage() {
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-3 flex items-center gap-2">
-                    <FileText className="w-3.5 h-3.5" /> Billing Address
+                    <FileText className="w-3.5 h-3.5" /> Billing Address (ZATCA & ERP Compatible)
                   </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field label="Street Address">
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <Field label="Billing Attention" hint="Department / Invoice recipient">
+                      <input className={inputClass} value={formData.billingAttention} onChange={e => set('billingAttention', e.target.value)} placeholder="Accounts Payable / Ahmed" />
+                    </Field>
+                    <Field label="Street Address Line 1">
                       <input className={inputClass} value={formData.billingAddress} onChange={e => set('billingAddress', e.target.value)} placeholder="King Fahd Road, Building 42" />
+                    </Field>
+                    <Field label="Street Address Line 2">
+                      <input className={inputClass} value={formData.billingStreet2} onChange={e => set('billingStreet2', e.target.value)} placeholder="Floor 4, Office 402" />
+                    </Field>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <Field label="District (الحي)" hint="Saudi National Address">
+                      <input className={inputClass} value={formData.billingDistrict} onChange={e => set('billingDistrict', e.target.value)} placeholder="Al Olaya / Al Malaz" />
                     </Field>
                     <Field label="City">
                       <select className={inputClass} value={formData.billingCity} onChange={e => set('billingCity', e.target.value)}>
@@ -714,18 +756,21 @@ export default function CustomersPage() {
                         {SAUDI_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </Field>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 mt-4">
-                    <Field label="Region">
+                    <Field label="State / Region">
                       <select className={inputClass} value={formData.billingRegion} onChange={e => set('billingRegion', e.target.value)}>
                         <option value="">— Select —</option>
                         {SAUDI_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </Field>
-                    <Field label="Postal Code" hint="5 digits">
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mt-4">
+                    <Field label="Postal Code / Code" hint="5 digits">
                       <input className={inputClass} value={formData.billingPostalCode} onChange={e => set('billingPostalCode', e.target.value)} placeholder="12345" maxLength={5} />
                     </Field>
-                    <Field label="Country">
+                    <Field label="Additional Number (الرقم الإضافي)" hint="4 digits">
+                      <input className={inputClass} value={formData.billingAdditionalNumber} onChange={e => set('billingAdditionalNumber', e.target.value)} placeholder="6789" maxLength={4} />
+                    </Field>
+                    <Field label="Country / County">
                       <input className={inputClass} value={formData.billingCountry} onChange={e => set('billingCountry', e.target.value)} placeholder="SA" />
                     </Field>
                   </div>
@@ -782,20 +827,26 @@ export default function CustomersPage() {
             {/* ═══ FINANCIAL TAB ═══ */}
             {activeTab === 'Financial' && (
               <div className="space-y-5">
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <Field label="Payment Terms">
                     <select className={inputClass} value={formData.paymentTerms} onChange={e => set('paymentTerms', e.target.value)}>
                       {PAYMENT_TERMS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </Field>
+                  <Field label="Payment Terms Label" hint="ERP custom label">
+                    <input className={inputClass} value={formData.paymentTermsLabel} onChange={e => set('paymentTermsLabel', e.target.value)} placeholder="Due within 30 days" />
+                  </Field>
+                  <Field label="Opening Balance (SAR)" hint="Initial ledger balance">
+                    <input type="number" step="0.01" className={inputClass} value={formData.openingBalance} onChange={e => set('openingBalance', e.target.value)} placeholder="0.00" />
+                  </Field>
                   <Field label="Credit Limit (SAR)">
                     <input type="number" step="0.01" className={inputClass} value={formData.creditLimitSar} onChange={e => set('creditLimitSar', e.target.value)} placeholder="50,000" />
                   </Field>
+                </div>
+                <div className="grid grid-cols-4 gap-4">
                   <Field label="Default Discount %">
                     <input type="number" step="0.1" min="0" max="100" className={inputClass} value={formData.discountPercent} onChange={e => set('discountPercent', e.target.value)} placeholder="0" />
                   </Field>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
                   <Field label="Bank Name">
                     <input className={inputClass} value={formData.bankName} onChange={e => set('bankName', e.target.value)} placeholder="Al Rajhi Bank" />
                   </Field>
@@ -1175,9 +1226,15 @@ export default function CustomersPage() {
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-[var(--muted)]">VAT Number</span>
+                      <span className="text-[var(--muted)]">VAT / TRN</span>
                       <span className="font-mono text-xs">{selectedCustomer.vatNumber || '—'}</span>
                     </div>
+                    {selectedCustomer.vatTreatment && (
+                      <div className="flex justify-between">
+                        <span className="text-[var(--muted)]">VAT Treatment</span>
+                        <span className="text-xs font-medium">{selectedCustomer.vatTreatment}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-[var(--muted)]">Zakat Certificate</span>
                       <span className="font-mono text-xs">{selectedCustomer.zakatCertNumber || '—'}</span>
@@ -1197,19 +1254,32 @@ export default function CustomersPage() {
                 {(selectedCustomer.billingAddress || selectedCustomer.billingCity) && (
                   <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-2 flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5" /> Billing
+                      <FileText className="w-3.5 h-3.5" /> Billing Address
                     </h3>
+                    {selectedCustomer.billingAttention && (
+                      <p className="text-xs font-medium text-[var(--accent)] mb-1">Attn: {selectedCustomer.billingAttention}</p>
+                    )}
                     <p className="text-sm">{selectedCustomer.billingAddress}</p>
-                    <p className="text-xs text-[var(--muted)] mt-1">{[selectedCustomer.billingCity, selectedCustomer.billingRegion, selectedCustomer.billingPostalCode].filter(Boolean).join(', ')}</p>
+                    {selectedCustomer.billingStreet2 && <p className="text-xs text-[var(--muted)]">{selectedCustomer.billingStreet2}</p>}
+                    <p className="text-xs text-[var(--muted)] mt-1">
+                      {[
+                        selectedCustomer.billingDistrict ? `District: ${selectedCustomer.billingDistrict}` : null,
+                        selectedCustomer.billingCity,
+                        selectedCustomer.billingRegion,
+                        selectedCustomer.billingPostalCode,
+                        selectedCustomer.billingAdditionalNumber ? `Add. No: ${selectedCustomer.billingAdditionalNumber}` : null,
+                        selectedCustomer.billingCountry
+                      ].filter(Boolean).join(', ')}
+                    </p>
                   </div>
                 )}
                 {(selectedCustomer.shippingAddress || selectedCustomer.shippingCity) && (
                   <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-2 flex items-center gap-1.5">
-                      <Package className="w-3.5 h-3.5" /> Shipping
+                      <Package className="w-3.5 h-3.5" /> Shipping Address
                     </h3>
                     <p className="text-sm">{selectedCustomer.shippingAddress}</p>
-                    <p className="text-xs text-[var(--muted)] mt-1">{[selectedCustomer.shippingCity, selectedCustomer.shippingRegion, selectedCustomer.shippingPostalCode].filter(Boolean).join(', ')}</p>
+                    <p className="text-xs text-[var(--muted)] mt-1">{[selectedCustomer.shippingCity, selectedCustomer.shippingRegion, selectedCustomer.shippingPostalCode, selectedCustomer.shippingCountry].filter(Boolean).join(', ')}</p>
                   </div>
                 )}
               </div>
@@ -1217,10 +1287,14 @@ export default function CustomersPage() {
               {/* Financial & Contract */}
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] pb-2 border-b border-[var(--border)]">Financial</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] pb-2 border-b border-[var(--border)]">Financial & Ledger</h3>
                   <div className="space-y-2 text-sm">
+                    {selectedCustomer.paymentTermsLabel && (
+                      <div className="flex justify-between"><span className="text-[var(--muted)]">Payment Terms</span><span>{selectedCustomer.paymentTermsLabel}</span></div>
+                    )}
                     <div className="flex justify-between"><span className="text-[var(--muted)]">Credit Limit</span><span className="tabular-nums">{formatCurrency(selectedCustomer.creditLimitSar)}</span></div>
-                    <div className="flex justify-between"><span className="text-[var(--muted)]">Balance</span><span className="tabular-nums">{formatCurrency(selectedCustomer.currentBalanceSar)}</span></div>
+                    <div className="flex justify-between"><span className="text-[var(--muted)]">Opening Balance</span><span className="tabular-nums">{formatCurrency(selectedCustomer.openingBalance)}</span></div>
+                    <div className="flex justify-between"><span className="text-[var(--muted)]">Current Balance</span><span className="tabular-nums font-medium">{formatCurrency(selectedCustomer.currentBalanceSar)}</span></div>
                     {selectedCustomer.discountPercent !== null && selectedCustomer.discountPercent !== undefined && selectedCustomer.discountPercent > 0 && (
                       <div className="flex justify-between"><span className="text-[var(--muted)]">Discount</span><span>{selectedCustomer.discountPercent}%</span></div>
                     )}
