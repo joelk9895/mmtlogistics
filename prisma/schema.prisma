@@ -543,15 +543,137 @@ model VehicleInspection {
   notes String?
 }
 
-model Customer {
-  id            String   @id @default(uuid())
-  companyName   String
-  contactPerson String
-  email         String   @unique
-  phone         String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+enum CustomerStatus {
+  ACTIVE
+  INACTIVE
+  PROSPECT    // Lead / potential customer
+  ON_HOLD     // Payment issues, etc.
+  BLACKLISTED // Do not serve
+}
 
+enum CustomerType {
+  CORPORATE
+  SME              // Small-medium enterprise
+  INDIVIDUAL
+  GOVERNMENT
+  SEMI_GOVERNMENT  // Aramco, SABIC, etc.
+}
+
+enum PaymentTerms {
+  CASH
+  COD              // Cash on delivery
+  NET_15
+  NET_30
+  NET_45
+  NET_60
+  NET_90
+  PREPAID
+  CREDIT
+}
+
+enum IndustryType {
+  FMCG              // Fast-moving consumer goods
+  CONSTRUCTION
+  OIL_GAS
+  PETROCHEMICAL
+  HEALTHCARE
+  PHARMACEUTICAL
+  FOOD_BEVERAGE
+  RETAIL
+  ECOMMERCE
+  MANUFACTURING
+  AUTOMOTIVE
+  AGRICULTURE
+  MINING
+  TELECOMMUNICATIONS
+  LOGISTICS
+  GOVERNMENT
+  EDUCATION
+  OTHER
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── Company Identity ──
+  accountNumber   String         @unique  // Auto-generated: CUS-001
+  companyName     String
+  companyNameAr   String?                  // Arabic company name
+  tradeName       String?                  // DBA / trading name
+  customerType    CustomerType   @default(CORPORATE)
+  status          CustomerStatus @default(ACTIVE)
+  industryType    IndustryType?
+
+  // ── Saudi Commercial Registration ──
+  crNumber        String?        @unique   // Commercial Registration (سجل تجاري)
+  crExpiryDate    DateTime?                // ⚠️ Compliance
+  vatNumber       String?        @unique   // ZATCA VAT number (15 digits)
+  zakatCertNumber String?                  // Zakat & Tax certificate
+  zakatCertExpiry DateTime?                // ⚠️ Compliance
+  nationalAddress String?                  // Saudi National Address (short code)
+
+  // ── Primary Contact ──
+  contactPerson   String
+  contactTitle    String?                  // e.g. Logistics Manager
+  email           String         @unique
+  phone           String
+  alternatePhone  String?
+  whatsapp        String?                  // WhatsApp number (widely used in KSA)
+
+  // ── Additional Contacts (JSON) ──
+  additionalContacts String?               // JSON array: [{ name, title, email, phone, role }]
+
+  // ── Billing Address ──
+  billingAddress   String?
+  billingCity      String?                 // e.g. Riyadh, Jeddah, Dammam
+  billingRegion    String?                 // Saudi region/province
+  billingPostalCode String?                // 5-digit Saudi postal code
+  billingCountry   String?      @default("SA")
+
+  // ── Shipping / Operations Address ──
+  shippingAddress   String?
+  shippingCity      String?
+  shippingRegion    String?
+  shippingPostalCode String?
+  shippingCountry   String?     @default("SA")
+
+  // ── Financial & Payment ──
+  paymentTerms     PaymentTerms @default(NET_30)
+  creditLimitSar   Float?                 // Credit limit in SAR
+  currentBalanceSar Float?      @default(0) // Outstanding balance
+  bankName         String?
+  ibanNumber       String?                // Saudi IBAN (SA + 22 digits)
+  currency         String?      @default("SAR")
+
+  // ── Pricing & Rates ──
+  discountPercent  Float?       @default(0) // Default discount %
+  specialRateCard  String?                  // JSON: custom rates per route/service
+  contractStartDate DateTime?
+  contractEndDate   DateTime?              // ⚠️ Renewal tracking
+  contractDocUrl   String?                 // Uploaded contract file
+
+  // ── Service Preferences ──
+  preferredVehicleTypes String?             // Comma-separated slugs
+  requiresColdChain    Boolean  @default(false)
+  requiresHazmat       Boolean  @default(false)
+  requiresInsuredCargo Boolean  @default(false)
+  defaultPickupCity    String?
+  defaultDeliveryCity  String?
+
+  // ── Account Management ──
+  accountManagerName String?               // Internal AM assigned
+  salesRepName       String?               // Sales representative
+  referralSource     String?               // How they found us
+  tags               String?               // Comma-separated tags for filtering
+
+  // ── Notes & Metadata ──
+  notes            String?
+  logoUrl          String?                 // Company logo
+  website          String?
+
+  // ── Relations ──
   orders Order[]
   user   User?
 }
