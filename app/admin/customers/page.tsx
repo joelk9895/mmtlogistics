@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Building2, Phone, Mail, MapPin, CreditCard, FileText, Package, Search, Plus, X, ChevronRight, Users, TrendingUp, AlertTriangle, Shield, Globe, Briefcase, BadgeCheck, UserPlus, Trash2 } from 'lucide-react';
+import { Building2, Phone, Mail, MapPin, CreditCard, FileText, Package, Search, Plus, X, ChevronRight, ChevronDown, Users, TrendingUp, AlertTriangle, Shield, Globe, Briefcase, BadgeCheck, UserPlus, Trash2, Link2, Unlink } from 'lucide-react';
 
 type ContactEntry = {
   name: string;
@@ -86,6 +86,9 @@ type Customer = {
   createdAt: string;
   updatedAt: string;
   orders?: any[];
+  parentId: string | null;
+  parent?: { id: string; companyName: string; accountNumber: string } | null;
+  children?: { id: string; companyName: string; accountNumber: string; division: string | null; status: string; contactPerson: string; email: string; phone: string }[];
   _count?: { orders: number };
 };
 
@@ -218,7 +221,7 @@ function Toggle({ label, description, checked, onChange }: { label: string; desc
 
 const initialForm = {
   // Company & Hierarchy
-  companyName: '', companyNameAr: '', tradeName: '', division: '', brand: '', customerType: 'CORPORATE', customerSubType: '', status: 'ACTIVE', industryType: '',
+  companyName: '', companyNameAr: '', tradeName: '', division: '', brand: '', customerType: 'CORPORATE', customerSubType: '', status: 'ACTIVE', industryType: '', parentId: '' as string,
   // Saudi CR & Tax
   crNumber: '', crExpiryDate: '', vatNumber: '', vatTreatment: 'VAT Registered', zakatCertNumber: '', zakatCertExpiry: '', nationalAddress: '',
   // Contact
@@ -298,7 +301,9 @@ export default function CustomersPage() {
 
   const handleEdit = (c: Customer) => {
     setEditingId(c.id);
-    setFormData(sanitizeForEdit(c));
+    const sanitized = sanitizeForEdit(c);
+    sanitized.parentId = c.parentId || '';
+    setFormData(sanitized);
     // Parse additionalContacts JSON
     try {
       const parsed = c.additionalContacts ? JSON.parse(c.additionalContacts) : [];
@@ -334,9 +339,10 @@ export default function CustomersPage() {
     try {
       const url = editingId ? `/api/customers/${editingId}` : '/api/customers';
       const method = editingId ? 'PUT' : 'POST';
-      const payload = {
+      const payload: any = {
         ...formData,
         additionalContacts: contacts.length > 0 ? JSON.stringify(contacts.filter(c => c.name.trim())) : null,
+        parentId: formData.parentId || null,
       };
       const res = await fetch(url, {
         method,
@@ -484,9 +490,53 @@ export default function CustomersPage() {
             {/* ═══ COMPANY TAB ═══ */}
             {activeTab === 'Company' && (
               <div className="space-y-5">
+                {/* Parent Company Selector */}
+                <div className="border border-dashed border-[var(--border)] rounded-lg p-4 bg-[var(--surface)]/50">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-3 flex items-center gap-2">
+                    <Link2 className="w-3.5 h-3.5" /> Parent Company (Optional)
+                  </h3>
+                  <p className="text-[11px] text-[var(--muted)] mb-3">
+                    Link this customer as a department or division of an existing parent company. Child accounts can independently book services.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <select
+                      className={`${inputClass} flex-1`}
+                      value={formData.parentId}
+                      onChange={e => set('parentId', e.target.value)}
+                    >
+                      <option value="">— No Parent (Top-Level Customer) —</option>
+                      {customers
+                        .filter(c => c.id !== editingId && !c.parentId) // only show top-level customers, exclude self
+                        .map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.companyName} ({c.accountNumber})
+                          </option>
+                        ))}
+                    </select>
+                    {formData.parentId && (
+                      <button
+                        type="button"
+                        onClick={() => set('parentId', '')}
+                        className="text-xs font-medium text-[var(--destructive)] hover:opacity-80 transition-opacity flex items-center gap-1 px-2 py-1.5 rounded border border-[var(--destructive)]/20 bg-[var(--destructive)]/5"
+                      >
+                        <Unlink className="w-3.5 h-3.5" /> Detach
+                      </button>
+                    )}
+                  </div>
+                  {formData.parentId && (() => {
+                    const parentCustomer = customers.find(c => c.id === formData.parentId);
+                    return parentCustomer ? (
+                      <div className="mt-3 flex items-center gap-2 text-xs text-[var(--accent)]">
+                        <Building2 className="w-3.5 h-3.5" />
+                        <span>This will be a child of <strong>{parentCustomer.companyName}</strong> ({parentCustomer.accountNumber})</span>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+
                 <div className="grid grid-cols-3 gap-4">
                   <Field label="Company Name" required>
-                    <input required className={inputClass} value={formData.companyName} onChange={e => set('companyName', e.target.value)} placeholder="Saudi Express Transport" />
+                    <input required className={inputClass} value={formData.companyName} onChange={e => set('companyName', e.target.value)} placeholder={formData.parentId ? "Department / Division Name" : "Saudi Express Transport"} />
                   </Field>
                   <Field label="Arabic Name" hint="اسم الشركة بالعربي">
                     <input className={inputClass} value={formData.companyNameAr} onChange={e => set('companyNameAr', e.target.value)} placeholder="النقل السعودي السريع" dir="rtl" />
@@ -1046,11 +1096,24 @@ export default function CustomersPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-lg bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center">
-                            <Building2 className="w-4 h-4 text-[var(--accent)]" />
+                            {c.parentId ? <Building2 className="w-4 h-4 text-[var(--accent)]/70" /> : <Building2 className="w-4 h-4 text-[var(--accent)]" />}
                           </div>
                           <div>
-                            <p className="text-sm font-medium">{c.companyName}</p>
-                            <p className="text-[11px] font-mono text-[var(--muted)]">{c.accountNumber}</p>
+                            <div className="flex items-center gap-2">
+                              {c.parentId && <div className="w-3 h-3 border-l-2 border-b-2 border-[var(--muted)] rounded-bl opacity-50" />}
+                              <p className="text-sm font-medium">{c.companyName}</p>
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] font-mono text-[var(--muted)]">
+                              <span>{c.accountNumber}</span>
+                              {c.parent && (
+                                <>
+                                  <span>•</span>
+                                  <span className="flex items-center gap-1 opacity-80" title="Parent Company">
+                                    <Building2 className="w-3 h-3" /> {c.parent.companyName}
+                                  </span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -1143,6 +1206,46 @@ export default function CustomersPage() {
                   <p className="text-sm font-medium">{INDUSTRIES.find(i => i.value === selectedCustomer.industryType)?.label || '—'}</p>
                 </div>
               </div>
+
+              {/* Hierarchy (Parent / Children) */}
+              {(selectedCustomer.parent || (selectedCustomer.children && selectedCustomer.children.length > 0)) && (
+                <div className="bg-[var(--surface)]/50 border border-[var(--border)] rounded-lg p-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-3">Company Hierarchy</h3>
+                  
+                  {selectedCustomer.parent && (
+                    <div className="mb-4">
+                      <p className="text-xs text-[var(--muted)] mb-1">Parent Company</p>
+                      <div className="flex items-center gap-2 p-2 rounded-md border border-[var(--border)] bg-[var(--background)]">
+                        <Building2 className="w-4 h-4 text-[var(--accent)]" />
+                        <span className="font-medium text-sm">{selectedCustomer.parent.companyName}</span>
+                        <span className="text-xs font-mono text-[var(--muted)]">({selectedCustomer.parent.accountNumber})</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedCustomer.children && selectedCustomer.children.length > 0 && (
+                    <div>
+                      <p className="text-xs text-[var(--muted)] mb-2">Child Accounts / Departments ({selectedCustomer.children.length})</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {selectedCustomer.children.map((child: any) => (
+                          <div key={child.id} className="flex items-center justify-between p-2 rounded-md border border-[var(--border)] bg-[var(--background)]">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <Building2 className="w-3.5 h-3.5 text-[var(--accent)]/70 shrink-0" />
+                              <div className="truncate">
+                                <p className="text-sm font-medium truncate">{child.companyName}</p>
+                                <p className="text-[10px] font-mono text-[var(--muted)]">{child.accountNumber}</p>
+                              </div>
+                            </div>
+                            <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-[var(--surface)] text-[var(--muted)] border border-[var(--border)]">
+                              {child.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Two Column Layout */}
               <div className="grid grid-cols-2 gap-6">

@@ -20,6 +20,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           },
         },
         _count: { select: { orders: true } },
+        parent: { select: { id: true, companyName: true, accountNumber: true } },
+        children: {
+          select: { id: true, companyName: true, accountNumber: true, division: true, status: true, contactPerson: true, email: true, phone: true },
+          orderBy: { companyName: 'asc' },
+        },
       },
     });
     if (!customer) return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
@@ -134,6 +139,27 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
     for (const f of boolFields) {
       if (body[f] !== undefined) data[f] = body[f] === true || body[f] === 'true';
+    }
+
+    // Handle parentId changes
+    if (body.parentId !== undefined) {
+      if (body.parentId === null || body.parentId === '' || body.parentId === 'none') {
+        data.parentId = null;  // Detach from parent
+      } else {
+        if (body.parentId === id) {
+          return NextResponse.json({ error: 'Customer cannot be its own parent' }, { status: 400 });
+        }
+        // Prevent circular: can't set parent to one of own children
+        const childIds = await prisma.customer.findMany({ where: { parentId: id }, select: { id: true } });
+        if (childIds.some((c: any) => c.id === body.parentId)) {
+          return NextResponse.json({ error: 'Cannot set a child customer as the parent (circular reference)' }, { status: 400 });
+        }
+        const parentExists = await prisma.customer.findUnique({ where: { id: body.parentId } });
+        if (!parentExists) {
+          return NextResponse.json({ error: 'Parent customer not found' }, { status: 404 });
+        }
+        data.parentId = body.parentId;
+      }
     }
 
     const customer = await prisma.customer.update({ where: { id }, data });

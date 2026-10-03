@@ -683,6 +683,11 @@ model Customer {
   logoUrl          String?                 // Company logo
   website          String?
 
+  // ── Parent-Child Hierarchy ──
+  parentId         String?                 // FK to parent customer (null = top-level)
+  parent           Customer?  @relation("CustomerHierarchy", fields: [parentId], references: [id])
+  children         Customer[] @relation("CustomerHierarchy")
+
   // ── Relations ──
   orders Order[]
   user   User?

@@ -22,6 +22,8 @@ export async function GET(request: Request) {
     const status = searchParams.get('status') || '';
     const type = searchParams.get('type') || '';
     const industry = searchParams.get('industry') || '';
+    const parentId = searchParams.get('parentId');
+    const topLevelOnly = searchParams.get('topLevel') === 'true';
 
     const where: any = {};
 
@@ -45,11 +47,18 @@ export async function GET(request: Request) {
     if (status) where.status = status;
     if (type) where.customerType = type;
     if (industry) where.industryType = industry;
+    if (parentId) where.parentId = parentId;
+    if (topLevelOnly) where.parentId = null;
 
     const customers = await prisma.customer.findMany({
       where,
       include: {
         _count: { select: { orders: true } },
+        parent: { select: { id: true, companyName: true, accountNumber: true } },
+        children: {
+          select: { id: true, companyName: true, accountNumber: true, division: true, status: true, contactPerson: true, email: true, phone: true },
+          orderBy: { companyName: 'asc' },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -234,6 +243,15 @@ export async function POST(request: Request) {
       ...parsed,
       accountNumber,
     };
+
+    // Link to parent customer if parentId provided
+    if (body.parentId) {
+      const parentExists = await prisma.customer.findUnique({ where: { id: body.parentId } });
+      if (!parentExists) {
+        return NextResponse.json({ error: 'Parent customer not found' }, { status: 404 });
+      }
+      data.parentId = body.parentId;
+    }
 
     const customer = await prisma.customer.create({ data });
     return NextResponse.json(customer, { status: 201 });
