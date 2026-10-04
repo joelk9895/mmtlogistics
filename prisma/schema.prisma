@@ -702,15 +702,53 @@ enum OrderStatus {
 
 model Order {
   id                String      @id @default(uuid())
+  trackingNumber    String      @unique // Auto-generated e.g. TRK-100234
   customerId        String
   customer          Customer    @relation(fields: [customerId], references: [id])
-  pickupLocation    String
-  dropoffLocation   String
+  
+  // ── Reference ──
+  customerPoNumber  String?     // Customer Purchase Order
+  referenceNumber   String?     // External reference
+  
+  // ── Scheduling & Dates ──
+  orderDate         DateTime    @default(now())
+  scheduledPickup   DateTime?
+  scheduledDelivery DateTime?
+  actualPickup      DateTime?
+  actualDelivery    DateTime?
+  
+  // ── Routing & Addresses ──
+  pickupLocation    String      // Address string
+  pickupCity        String?
+  pickupContactName String?
+  pickupContactPhone String?
+  
+  dropoffLocation   String      // Address string
+  dropoffCity       String?
+  dropoffContactName String?
+  dropoffContactPhone String?
+  
+  // ── Cargo Details ──
+  cargoDescription  String?
+  cargoType         String?     @default("GENERAL") // GENERAL, HAZMAT, COLD_CHAIN, FRAGILE
+  weightKg          Float?
+  volumeCbm         Float?
+  pallets           Int?
+  
+  // ── Financials ──
+  totalAmount       Float?
+  currency          String      @default("SAR")
+  paymentStatus     String      @default("UNPAID") // UNPAID, PARTIAL, PAID
+  
+  // ── Dispatch ──
   assignedDriverId  String?
   driver            Driver?     @relation(fields: [assignedDriverId], references: [id])
   assignedVehicleId String?
   vehicle           Vehicle?    @relation(fields: [assignedVehicleId], references: [id])
+  
   status            OrderStatus @default(PENDING)
+  notes             String?     @db.Text
+  
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 }
