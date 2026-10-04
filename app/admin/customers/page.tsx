@@ -282,6 +282,45 @@ export default function CustomersPage() {
 
   const set = (key: string, value: any) => setFormData(prev => ({ ...prev, [key]: value ?? '' }));
 
+  const handleParentChange = (parentId: string) => {
+    if (!parentId) {
+      setFormData(prev => ({ ...prev, parentId: '' }));
+      return;
+    }
+    const parent = customers.find(c => c.id === parentId);
+    if (!parent) {
+      setFormData(prev => ({ ...prev, parentId }));
+      return;
+    }
+    
+    // Auto-populate common fields from parent if they are empty in current form
+    setFormData(prev => {
+      const updated = { ...prev, parentId };
+      const fieldsToCopy: (keyof typeof initialForm)[] = [
+        'customerType', 'industryType', 'paymentTerms', 'currency', 
+        'crNumber', 'crExpiryDate', 'vatNumber', 'vatTreatment', 'zakatCertNumber', 'zakatCertExpiry', 'nationalAddress',
+        'billingAddress', 'billingStreet2', 'billingDistrict', 'billingCity', 'billingRegion', 'billingPostalCode', 'billingAdditionalNumber', 'billingCountry',
+        'shippingAddress', 'shippingCity', 'shippingRegion', 'shippingPostalCode', 'shippingCountry',
+        'discountPercent', 'contractStartDate', 'contractEndDate',
+        'requiresColdChain', 'requiresHazmat', 'requiresInsuredCargo'
+      ];
+
+      fieldsToCopy.forEach(field => {
+        // Only override if the current form field is empty/falsy, and parent has a value
+        if (!updated[field] && parent[field as keyof Customer]) {
+          let val = parent[field as keyof Customer];
+          if (val instanceof Date) {
+            val = val.toISOString().split('T')[0] as any;
+          } else if (['crExpiryDate', 'zakatCertExpiry', 'contractStartDate', 'contractEndDate'].includes(field) && typeof val === 'string') {
+            val = new Date(val).toISOString().split('T')[0] as any;
+          }
+          (updated as any)[field] = val;
+        }
+      });
+      return updated;
+    });
+  };
+
   const sanitizeForEdit = (c: Customer) => {
     const sanitized = { ...initialForm };
     for (const key of Object.keys(initialForm) as (keyof typeof initialForm)[]) {
@@ -502,7 +541,7 @@ export default function CustomersPage() {
                     <select
                       className={`${inputClass} flex-1`}
                       value={formData.parentId}
-                      onChange={e => set('parentId', e.target.value)}
+                      onChange={e => handleParentChange(e.target.value)}
                     >
                       <option value="">— No Parent (Top-Level Customer) —</option>
                       {customers
