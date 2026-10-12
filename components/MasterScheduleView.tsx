@@ -123,7 +123,8 @@ export default function MasterScheduleView({ drivers }: MasterScheduleViewProps)
                   {days.map((day, i) => {
                     // Check if there are orders or leaves for this specific day
                     const dayOrders = driver.orders?.filter((o: any) => {
-                      const d = new Date(o.createdAt);
+                      const scheduledStop = o.locations?.find((location: any) => location.type === 'PICKUP')?.scheduledDate;
+                      const d = new Date(o.scheduledPickup || scheduledStop || o.requestedDate || o.createdAt);
                       return d.getDate() === day.getDate() && d.getMonth() === day.getMonth() && d.getFullYear() === day.getFullYear();
                     }) || [];
 

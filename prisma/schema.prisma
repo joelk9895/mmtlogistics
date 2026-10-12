@@ -700,6 +700,49 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum LocationType {
+  PICKUP
+  DROPOFF
+  INTERMEDIATE
+}
+
+model OrderLocation {
+  id                String        @id @default(uuid())
+  orderId           String
+  order             Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  // ── Location Details ──
+  type              LocationType  @default(PICKUP)
+  sequence          Int           @default(0)  // Order of locations (0, 1, 2, ...)
+  
+  // ── Address Details ──
+  address           String        // Full address string
+  city              String?
+  region            String?
+  postalCode        String?
+  country           String?       @default("SA")
+  latitude          Float?        // For mapping
+  longitude         Float?        // For mapping
+  
+  // ── Contact Information ──
+  contactName       String?
+  contactPhone      String?
+  contactEmail      String?
+  
+  // ── Scheduling ──
+  scheduledDate     DateTime?
+  actualDate        DateTime?
+  
+  // ── Instructions & Notes ──
+  instructions      String?
+  notes             String?
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  @@unique([orderId, sequence])
+}
+
 model Order {
   id                String      @id @default(uuid())
   trackingNumber    String      @unique // Auto-generated e.g. TRK-100234
@@ -709,24 +752,48 @@ model Order {
   // ── Reference ──
   customerPoNumber  String?     // Customer Purchase Order
   referenceNumber   String?     // External reference
+  waybillNumber     String?     // Way bill / consignment number
+  deliveryNoteNumber String?    // Delivery note (DN) number
+  invoiceNumber     String?
+  rfqNumber         String?
+  attachmentReferences String? @db.Text // Uploaded file URLs or document references
+  division          String?     // Order-specific customer division
+  brand             String?     // Order-specific customer brand
+  requestedBy       String?
+  requestedDate     DateTime?
   
   // ── Scheduling & Dates ──
   orderDate         DateTime    @default(now())
-  scheduledPickup   DateTime?
-  scheduledDelivery DateTime?
-  actualPickup      DateTime?
-  actualDelivery    DateTime?
+  scheduledPickup   DateTime?   // Legacy field for backward compatibility
+  scheduledDelivery DateTime?   // Legacy field for backward compatibility
+  actualPickup      DateTime?   // Legacy field for backward compatibility
+  actualDelivery    DateTime?   // Legacy field for backward compatibility
+  unloadingFinishedAt DateTime?
+  deliveryDurationHours Float?
+  transitTime       String?     // Free-form duration when the exact unit is not known
   
-  // ── Routing & Addresses ──
-  pickupLocation    String      // Address string
+  // ── Routing & Addresses (Legacy fields for backward compatibility) ──
+  pickupLocation    String?     // Address string - keep for existing orders
   pickupCity        String?
   pickupContactName String?
   pickupContactPhone String?
   
-  dropoffLocation   String      // Address string
+  dropoffLocation   String?     // Address string - keep for existing orders
   dropoffCity       String?
   dropoffContactName String?
   dropoffContactPhone String?
+
+  // ── Provider & Delivery Record ──
+  serviceProvider       String? // COMPANY / OUTSOURCE or named provider
+  serviceProviderName   String?
+  externalDriverName    String? // Used when the driver is not in the company roster
+  externalVehicleNumber String? // Used when the vehicle is not in the fleet
+  externalVehicleType   String?
+  additionalComments   String?  @db.Text
+  waitingLabor          String?
+  deliveryStatus        String?
+  receiver              String?
+  podStatus             String?
   
   // ── Cargo Details ──
   cargoDescription  String?
@@ -737,6 +804,9 @@ model Order {
   
   // ── Financials ──
   totalAmount       Float?
+  costAmount        Float?
+  driverTa          Float?
+  tripCost          Float?
   currency          String      @default("SAR")
   paymentStatus     String      @default("UNPAID") // UNPAID, PARTIAL, PAID
   
@@ -748,6 +818,12 @@ model Order {
   
   status            OrderStatus @default(PENDING)
   notes             String?     @db.Text
+  handledBy         String?
+  confirmedBy       String?
+  auditPro          String?
+  
+  // ── Multi-location Support ──
+  locations         OrderLocation[]
   
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt

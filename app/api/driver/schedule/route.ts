@@ -21,7 +21,10 @@ export async function GET(request: Request) {
     // Fetch orders and leaves
     const orders = await prisma.order.findMany({
       where: { assignedDriverId: user.driverId },
-      include: { customer: { select: { companyName: true } } },
+      include: {
+        customer: { select: { companyName: true } },
+        locations: { orderBy: { sequence: 'asc' }, select: { type: true, scheduledDate: true, city: true, address: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
 

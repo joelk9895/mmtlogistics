@@ -25,6 +25,7 @@ export async function GET(request: Request) {
           include: {
             vehicle: true,
             customer: { select: { companyName: true } },
+            locations: { orderBy: { sequence: 'asc' }, select: { type: true, scheduledDate: true, city: true, address: true } },
           },
         },
         leaves: true,

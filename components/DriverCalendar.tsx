@@ -6,6 +6,9 @@ type Order = {
   id: string;
   trackingNumber: string;
   createdAt: string;
+  requestedDate?: string;
+  scheduledPickup?: string;
+  locations?: { type: string; scheduledDate?: string }[];
 };
 
 type Leave = {
@@ -41,7 +44,8 @@ export default function DriverCalendar({ orders, leaves }: DriverCalendarProps) 
     targetDate.setHours(0, 0, 0, 0);
 
     const dayOrders = orders.filter((o) => {
-      const orderDate = new Date(o.createdAt);
+      const scheduledStop = o.locations?.find((location) => location.type === 'PICKUP')?.scheduledDate;
+      const orderDate = new Date(o.scheduledPickup || scheduledStop || o.requestedDate || o.createdAt);
       return (
         orderDate.getFullYear() === targetDate.getFullYear() &&
         orderDate.getMonth() === targetDate.getMonth() &&
