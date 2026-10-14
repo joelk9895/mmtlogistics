@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
+import Link from 'next/link';
 import DriverCalendar from '@/components/DriverCalendar';
 import MasterScheduleView from '@/components/MasterScheduleView';
 
@@ -142,10 +143,22 @@ function DriverDetail({ driver, onClose, onEdit }: { driver: any; onClose: () =>
               <p className="text-xs text-[var(--muted)] font-mono">{driver.employeeId}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className={`text-xs font-medium uppercase tracking-wider ${STATUS_COLORS[driver.status] || ''}`}>{driver.status?.replace('_', ' ')}</span>
-            <button onClick={onEdit} className="text-[var(--accent)] hover:opacity-80 transition-opacity text-sm font-medium mr-2">Edit</button>
-            <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors text-lg">✕</button>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/admin/orders?create=1&driverId=${driver.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--foreground)] text-[var(--background)] hover:opacity-90 transition-opacity"
+            >
+              + Assign Order
+            </Link>
+            <Link
+              href={`/admin/orders?driverId=${driver.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--border)] hover:bg-[var(--surface)] transition-colors"
+            >
+              View Orders
+            </Link>
+            <span className={`text-xs font-medium uppercase tracking-wider px-2 py-1 rounded bg-[var(--surface)] border border-[var(--border)] ${STATUS_COLORS[driver.status] || ''}`}>{driver.status?.replace('_', ' ')}</span>
+            <button onClick={onEdit} className="text-[var(--accent)] hover:opacity-80 transition-opacity text-xs font-medium border border-[var(--border)] px-3 py-1.5 rounded-lg">Edit</button>
+            <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors text-lg ml-1">✕</button>
           </div>
         </div>
 

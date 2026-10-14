@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Building2, Phone, Mail, MapPin, CreditCard, FileText, Package, Search, Plus, X, ChevronRight, ChevronDown, Users, TrendingUp, AlertTriangle, Shield, Globe, Briefcase, BadgeCheck, UserPlus, Trash2, Link2, Unlink } from 'lucide-react';
 
 type ContactEntry = {
@@ -1173,9 +1174,24 @@ export default function CustomersPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs">{PAYMENT_TERMS.find(t => t.value === c.paymentTerms)?.label || c.paymentTerms}</td>
-                      <td className="px-4 py-3 text-sm text-right tabular-nums font-medium">{c._count?.orders || 0}</td>
+                      <td className="px-4 py-3 text-sm text-right tabular-nums font-medium" onClick={e => e.stopPropagation()}>
+                        <Link
+                          href={`/admin/orders?customerId=${c.id}`}
+                          className="hover:underline text-[var(--accent)] font-semibold inline-flex items-center gap-1"
+                          title="View orders for this customer"
+                        >
+                          {c._count?.orders || 0}
+                        </Link>
+                      </td>
                       <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Link
+                            href={`/admin/orders?create=1&customerId=${c.id}`}
+                            className="text-xs text-[var(--foreground)] bg-[var(--surface)] hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] px-2 py-1 rounded transition-colors inline-flex items-center gap-1 font-medium border border-[var(--border)]"
+                            title="Create order for this customer"
+                          >
+                            <Plus className="w-3 h-3" /> Order
+                          </Link>
                           <button
                             onClick={() => handleEdit(c)}
                             className="text-xs text-[var(--accent)] hover:opacity-80 px-2 py-1 rounded hover:bg-[var(--surface)] transition-colors"
@@ -1220,18 +1236,36 @@ export default function CustomersPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => { handleEdit(selectedCustomer); }} className="text-sm text-[var(--accent)] font-medium hover:opacity-80 transition-opacity">Edit</button>
-                <button onClick={() => setSelectedCustomer(null)} className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors text-lg ml-2">✕</button>
+                <Link
+                  href={`/admin/orders?create=1&customerId=${selectedCustomer.id}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--foreground)] text-[var(--background)] hover:opacity-90 transition-opacity shadow-sm"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Create Order
+                </Link>
+                <Link
+                  href={`/admin/orders?customerId=${selectedCustomer.id}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--border)] hover:bg-[var(--surface)] transition-colors"
+                >
+                  <Package className="w-3.5 h-3.5" /> Orders ({selectedCustomer._count?.orders || 0})
+                </Link>
+                <button onClick={() => { handleEdit(selectedCustomer); }} className="text-xs text-[var(--accent)] font-medium hover:opacity-80 transition-opacity border border-[var(--border)] px-3 py-1.5 rounded-lg">Edit</button>
+                <button onClick={() => setSelectedCustomer(null)} className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors text-lg ml-1">✕</button>
               </div>
             </div>
 
             <div className="px-6 py-5 space-y-6">
               {/* Quick Info Grid */}
               <div className="grid grid-cols-4 gap-4">
-                <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3">
-                  <p className="text-[11px] text-[var(--muted)] uppercase tracking-wider mb-1">Orders</p>
-                  <p className="text-lg font-bold tabular-nums">{selectedCustomer._count?.orders || 0}</p>
-                </div>
+                <Link
+                  href={`/admin/orders?customerId=${selectedCustomer.id}`}
+                  className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3 hover:border-[var(--accent)]/50 transition-colors block group"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[11px] text-[var(--muted)] uppercase tracking-wider">Orders</p>
+                    <span className="text-[10px] text-[var(--accent)] opacity-0 group-hover:opacity-100 transition-opacity">View →</span>
+                  </div>
+                  <p className="text-lg font-bold tabular-nums group-hover:text-[var(--accent)] transition-colors">{selectedCustomer._count?.orders || 0}</p>
+                </Link>
                 <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-3">
                   <p className="text-[11px] text-[var(--muted)] uppercase tracking-wider mb-1">Payment Terms</p>
                   <p className="text-sm font-medium">{PAYMENT_TERMS.find(t => t.value === selectedCustomer.paymentTerms)?.label}</p>

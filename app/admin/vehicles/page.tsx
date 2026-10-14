@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
+import Link from 'next/link';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -382,7 +383,21 @@ function VehicleDetail({ vehicle: initialVehicle, onClose, onRefresh }: { vehicl
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors text-xl leading-none">&times;</button>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/admin/orders?create=1&vehicleId=${vehicle.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-[var(--foreground)] text-[var(--background)] hover:opacity-90 transition-opacity"
+            >
+              + Assign Order
+            </Link>
+            <Link
+              href={`/admin/orders?vehicleId=${vehicle.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[var(--border)] hover:bg-[var(--surface)] transition-colors"
+            >
+              View Orders
+            </Link>
+            <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors text-xl leading-none ml-2">&times;</button>
+          </div>
         </div>
 
         {/* Tabs */}

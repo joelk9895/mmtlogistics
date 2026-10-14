@@ -9,6 +9,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const status = searchParams.get('status') || '';
+    const customerId = searchParams.get('customerId') || '';
+    const driverId = searchParams.get('driverId') || '';
+    const vehicleId = searchParams.get('vehicleId') || '';
     
     const where: any = {};
     if (search) {
@@ -29,6 +32,9 @@ export async function GET(request: Request) {
       ];
     }
     if (status) where.status = status;
+    if (customerId) where.customerId = customerId;
+    if (driverId) where.assignedDriverId = driverId;
+    if (vehicleId) where.assignedVehicleId = vehicleId;
 
     const orders = await prisma.order.findMany({
       where,
@@ -226,5 +232,99 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Failed to create order:', error);
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  const authError = await authenticate(request);
+  if (authError) return authError;
+  try {
+    const body = await request.json();
+    const { id, ...updates } = body;
+    if (!id) {
+      return NextResponse.json({ error: 'Order ID is required' }, { status: 400 });
+    }
+
+    const existing = await prisma.order.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    const asOptionalNumber = (value: unknown) =>
+      value === '' || value === null || value === undefined ? null : Number(value);
+    const asOptionalDate = (value: unknown) =>
+      value ? new Date(String(value)) : null;
+
+    const data: any = {};
+
+    // Allow updating status
+    if (updates.status) data.status = updates.status;
+
+    // Core & Reference fields
+    if (updates.customerId !== undefined) data.customerId = updates.customerId;
+    if (updates.customerPoNumber !== undefined) data.customerPoNumber = updates.customerPoNumber || null;
+    if (updates.referenceNumber !== undefined) data.referenceNumber = updates.referenceNumber || null;
+    if (updates.waybillNumber !== undefined) data.waybillNumber = updates.waybillNumber || null;
+    if (updates.deliveryNoteNumber !== undefined) data.deliveryNoteNumber = updates.deliveryNoteNumber || null;
+    if (updates.invoiceNumber !== undefined) data.invoiceNumber = updates.invoiceNumber || null;
+    if (updates.rfqNumber !== undefined) data.rfqNumber = updates.rfqNumber || null;
+    if (updates.requestedDate !== undefined) data.requestedDate = asOptionalDate(updates.requestedDate);
+    if (updates.requestedBy !== undefined) data.requestedBy = updates.requestedBy || null;
+    if (updates.division !== undefined) data.division = updates.division || null;
+    if (updates.brand !== undefined) data.brand = updates.brand || null;
+
+    // Cargo fields
+    if (updates.cargoDescription !== undefined) data.cargoDescription = updates.cargoDescription || null;
+    if (updates.cargoType !== undefined) data.cargoType = updates.cargoType || 'GENERAL';
+    if (updates.weightKg !== undefined) data.weightKg = asOptionalNumber(updates.weightKg);
+    if (updates.volumeCbm !== undefined) data.volumeCbm = asOptionalNumber(updates.volumeCbm);
+    if (updates.pallets !== undefined) data.pallets = asOptionalNumber(updates.pallets);
+
+    // Allow updating dispatch assignments
+    if (updates.assignedDriverId !== undefined) data.assignedDriverId = updates.assignedDriverId || null;
+    if (updates.assignedVehicleId !== undefined) data.assignedVehicleId = updates.assignedVehicleId || null;
+
+    // Allow updating service provider info
+    if (updates.serviceProvider !== undefined) data.serviceProvider = updates.serviceProvider;
+    if (updates.serviceProviderName !== undefined) data.serviceProviderName = updates.serviceProviderName || null;
+    if (updates.externalDriverName !== undefined) data.externalDriverName = updates.externalDriverName || null;
+    if (updates.externalVehicleNumber !== undefined) data.externalVehicleNumber = updates.externalVehicleNumber || null;
+    if (updates.externalVehicleType !== undefined) data.externalVehicleType = updates.externalVehicleType || null;
+
+    // Financial fields
+    if (updates.totalAmount !== undefined) data.totalAmount = asOptionalNumber(updates.totalAmount);
+    if (updates.costAmount !== undefined) data.costAmount = asOptionalNumber(updates.costAmount);
+    if (updates.driverTa !== undefined) data.driverTa = asOptionalNumber(updates.driverTa);
+    if (updates.tripCost !== undefined) data.tripCost = asOptionalNumber(updates.tripCost);
+    if (updates.paymentStatus !== undefined) data.paymentStatus = updates.paymentStatus;
+
+    // Delivery proof & audit fields
+    if (updates.deliveryStatus !== undefined) data.deliveryStatus = updates.deliveryStatus || null;
+    if (updates.receiver !== undefined) data.receiver = updates.receiver || null;
+    if (updates.podStatus !== undefined) data.podStatus = updates.podStatus || null;
+    if (updates.transitTime !== undefined) data.transitTime = updates.transitTime || null;
+    if (updates.deliveryDurationHours !== undefined) data.deliveryDurationHours = asOptionalNumber(updates.deliveryDurationHours);
+    if (updates.unloadingFinishedAt !== undefined) data.unloadingFinishedAt = asOptionalDate(updates.unloadingFinishedAt);
+    if (updates.actualPickup !== undefined) data.actualPickup = asOptionalDate(updates.actualPickup);
+    if (updates.actualDelivery !== undefined) data.actualDelivery = asOptionalDate(updates.actualDelivery);
+    if (updates.handledBy !== undefined) data.handledBy = updates.handledBy || null;
+    if (updates.confirmedBy !== undefined) data.confirmedBy = updates.confirmedBy || null;
+    if (updates.auditPro !== undefined) data.auditPro = updates.auditPro || null;
+    if (updates.notes !== undefined) data.notes = updates.notes || null;
+
+    const order = await prisma.order.update({
+      where: { id },
+      data,
+      include: {
+        customer: { select: { id: true, companyName: true, accountNumber: true, email: true, phone: true } },
+        driver: { select: { id: true, firstName: true, lastName: true, phone: true } },
+        vehicle: { select: { id: true, licensePlate: true, vehicleType: true } },
+        locations: { orderBy: { sequence: 'asc' } },
+      },
+    });
+    return NextResponse.json(order);
+  } catch (error) {
+    console.error('Failed to update order:', error);
+    return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
   }
 }
