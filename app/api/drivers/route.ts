@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { authenticate } from '@/lib/auth';
+import { effectiveDriverStatus, isCurrentlyOnLeave } from '@/lib/driver-availability';
+import { getPlatformSettings } from '@/lib/platform-settings';
 
 async function generateEmployeeId(): Promise<string> {
   const lastDriver = await prisma.driver.findFirst({
@@ -17,7 +19,7 @@ export async function GET(request: Request) {
   if (authError) return authError;
   
   try {
-    const drivers = await prisma.driver.findMany({
+    const [drivers, settings] = await Promise.all([prisma.driver.findMany({
       include: {
         orders: {
           orderBy: { createdAt: 'desc' },
@@ -34,8 +36,17 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { createdAt: 'desc' },
-    });
-    return NextResponse.json(drivers);
+    }), getPlatformSettings()]);
+    const now = new Date();
+    return NextResponse.json(drivers.map((driver) => ({
+      ...driver,
+      effectiveAnnualLeaveAllowance: driver.usePlatformLeaveAllowance ? settings.defaultAnnualLeaveDays : (driver.annualLeaveAllowance ?? settings.defaultAnnualLeaveDays),
+      effectiveMonthlyAllowance: driver.monthlyAllowance ?? settings.defaultMonthlyAllowance,
+      currentLeaves: driver.leaves.filter((leave) =>
+        leave.status === 'APPROVED' && leave.startDate <= now && leave.endDate >= now
+      ),
+      status: effectiveDriverStatus(driver.status, isCurrentlyOnLeave(driver.leaves.filter((leave) => leave.status === 'APPROVED'), now)),
+    })));
   } catch (error) {
     console.error('Failed to fetch drivers:', error);
     return NextResponse.json({ error: 'Failed to fetch drivers' }, { status: 500 });
@@ -49,6 +60,20 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const employeeId = await generateEmployeeId();
+    const annualLeaveAllowance = body.annualLeaveAllowance === '' || body.annualLeaveAllowance === undefined
+      ? null
+      : Number(body.annualLeaveAllowance);
+    if (annualLeaveAllowance !== null && (!Number.isInteger(annualLeaveAllowance) || annualLeaveAllowance < 0)) {
+      return NextResponse.json({ error: 'Annual leave allowance must be a whole number of zero or more days.' }, { status: 400 });
+    }
+    const monthlyAllowance = body.monthlyAllowance === '' || body.monthlyAllowance === undefined ? null : Number(body.monthlyAllowance);
+    if (monthlyAllowance !== null && (!Number.isFinite(monthlyAllowance) || monthlyAllowance < 0)) {
+      return NextResponse.json({ error: 'Monthly allowance must be a non-negative number.' }, { status: 400 });
+    }
+    const usePlatformLeaveAllowance = body.usePlatformLeaveAllowance !== false;
+    if (body.contractStartDate && body.contractEndDate && new Date(body.contractEndDate) < new Date(body.contractStartDate)) {
+      return NextResponse.json({ error: 'Contract end date must be on or after the contract start date.' }, { status: 400 });
+    }
 
     const driver = await prisma.driver.create({
       data: {
@@ -103,6 +128,15 @@ export async function POST(request: Request) {
         bankName: body.bankName || null,
         ibanNumber: body.ibanNumber || null,
         gosiNumber: body.gosiNumber || null,
+        contractStartDate: body.contractStartDate ? new Date(body.contractStartDate) : null,
+        contractEndDate: body.contractEndDate ? new Date(body.contractEndDate) : null,
+        contractNumber: body.contractNumber || null,
+        noticePeriodDays: body.noticePeriodDays ? parseInt(body.noticePeriodDays, 10) : null,
+        terminationDate: body.terminationDate ? new Date(body.terminationDate) : null,
+        terminationReason: body.terminationReason || null,
+        annualLeaveAllowance,
+        usePlatformLeaveAllowance,
+        monthlyAllowance,
         notes: body.notes || null,
 
         // License

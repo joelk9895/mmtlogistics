@@ -177,8 +177,15 @@ model Driver {
   bankName          String? // e.g. Al Rajhi, SNB, Alinma
   ibanNumber        String? // Saudi IBAN (SA + 22 digits)
   gosiNumber        String? // GOSI social insurance number
+  contractStartDate DateTime?
+  contractEndDate   DateTime?
+  contractNumber    String?
+  noticePeriodDays  Int?
   terminationDate   DateTime?
   terminationReason String?
+  annualLeaveAllowance Int? // Overrides the platform default when set
+  usePlatformLeaveAllowance Boolean @default(true)
+  monthlyAllowance    Float? // Optional monthly allowance in SAR
   notes             String?
 
   // ── Saudi Driving License ──
@@ -217,6 +224,20 @@ model Driver {
   user           User?
   leaves         DriverLeave[]
   primaryVehicle Vehicle? @relation("PrimaryVehicle")
+}
+
+// Singleton record for organization-wide operating defaults.
+model PlatformSettings {
+  id                     String   @id @default("default")
+  companyName            String   @default("MMT Logistics")
+  supportEmail           String?
+  supportPhone           String?
+  currency               String   @default("SAR")
+  timezone               String   @default("Asia/Riyadh")
+  defaultAnnualLeaveDays Int      @default(21)
+  defaultMonthlyAllowance Float   @default(0)
+  defaultNoticePeriodDays Int     @default(30)
+  updatedAt              DateTime @updatedAt
 }
 
 // ─── Vehicle Enums ────────────────────────────────────────

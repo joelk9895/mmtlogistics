@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getSession } from '@/lib/session';
+import { leaveBalance } from '@/lib/leave-balance';
+import { getPlatformSettings } from '@/lib/platform-settings';
 
 export async function GET(request: Request) {
   try {
@@ -33,7 +35,12 @@ export async function GET(request: Request) {
       orderBy: { startDate: 'desc' },
     });
 
-    return NextResponse.json({ orders, leaves });
+    const settings = await getPlatformSettings();
+    return NextResponse.json({
+      orders,
+      leaves,
+      leaveBalance: leaveBalance(leaves, user.driver!.usePlatformLeaveAllowance ? settings.defaultAnnualLeaveDays : (user.driver!.annualLeaveAllowance ?? settings.defaultAnnualLeaveDays)),
+    });
   } catch (error) {
     console.error('Failed to fetch schedule:', error);
     return NextResponse.json({ error: 'Failed to fetch schedule' }, { status: 500 });

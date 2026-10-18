@@ -29,7 +29,8 @@ const initialForm = {
   emergencyContactName: '', emergencyContactPhone: '', emergencyContactRelation: '',
   // Employment
   dateOfJoining: '', employmentType: 'FULL_TIME', status: 'ACTIVE', department: '', salary: '',
-  bankName: '', ibanNumber: '', gosiNumber: '', notes: '',
+  bankName: '', ibanNumber: '', gosiNumber: '', contractStartDate: '', contractEndDate: '', contractNumber: '', noticePeriodDays: '',
+  terminationDate: '', terminationReason: '', annualLeaveAllowance: '', usePlatformLeaveAllowance: true, monthlyAllowance: '', notes: '',
   // License
   licenseNumber: '', licenseType: 'HEAVY_EQUIPMENT', licenseIssuingAuthority: '', licenseIssueDate: '', licenseExpiryDate: '',
   hazmatCertified: false, defensiveDrivingCert: false,
@@ -60,7 +61,7 @@ const selectClass = inputClass;
 
 // ── Detail Modal ──
 function DriverDetail({ driver, onClose, onEdit }: { driver: any; onClose: () => void; onEdit: () => void }) {
-  const [scheduleData, setScheduleData] = useState<{ orders: any[], leaves: any[] }>({ orders: [], leaves: [] });
+  const [scheduleData, setScheduleData] = useState<{ orders: any[], leaves: any[], leaveBalance?: { year: number; allowance: number; approved: number; pending: number; remaining: number } }>({ orders: [], leaves: [] });
   const [loadingSchedule, setLoadingSchedule] = useState(true);
 
   const fetchSchedule = () => {
@@ -69,7 +70,7 @@ function DriverDetail({ driver, onClose, onEdit }: { driver: any; onClose: () =>
       .then(res => res.json())
       .then(data => {
         if (data.orders || data.leaves) {
-          setScheduleData({ orders: data.orders || [], leaves: data.leaves || [] });
+          setScheduleData({ orders: data.orders || [], leaves: data.leaves || [], leaveBalance: data.leaveBalance });
         }
       })
       .catch(console.error)
@@ -211,6 +212,17 @@ function DriverDetail({ driver, onClose, onEdit }: { driver: any; onClose: () =>
             <Item label="Bank" value={driver.bankName} />
             <Item label="IBAN" value={driver.ibanNumber} mono />
             <Item label="GOSI Number" value={driver.gosiNumber} mono />
+            <Item label="Annual Leave Allowance" value={`${driver.effectiveAnnualLeaveAllowance ?? 21} days`} />
+            <Item label="Monthly Allowance" value={driver.effectiveMonthlyAllowance ? `${driver.effectiveMonthlyAllowance.toLocaleString()} SAR` : '—'} />
+          </Section>
+
+          <Section title="Contract & Ending">
+            <Item label="Contract Number" value={driver.contractNumber} mono />
+            <Item label="Contract Start" value={fmt(driver.contractStartDate)} />
+            <Item label="Contract End" value={fmt(driver.contractEndDate)} expiry />
+            <Item label="Notice Period" value={driver.noticePeriodDays ? `${driver.noticePeriodDays} days` : null} />
+            <Item label="Termination Date" value={fmt(driver.terminationDate)} />
+            <Item label="Termination Reason" value={driver.terminationReason} />
           </Section>
 
           <Section title="License & Transport Authority">
@@ -256,6 +268,16 @@ function DriverDetail({ driver, onClose, onEdit }: { driver: any; onClose: () =>
               <div className="text-sm text-[var(--muted)]">Loading schedule...</div>
             ) : (
               <div className="space-y-6">
+                {scheduleData.leaveBalance && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                      ['Annual leave', `${scheduleData.leaveBalance.allowance} days`],
+                      ['Taken', `${scheduleData.leaveBalance.approved} days`],
+                      ['Pending', `${scheduleData.leaveBalance.pending} days`],
+                      ['Available', `${scheduleData.leaveBalance.remaining} days`],
+                    ].map(([label, value]) => <div key={label} className="rounded-md bg-[var(--surface)] p-3"><p className="text-[10px] uppercase tracking-wider text-[var(--muted)]">{label}</p><p className="mt-1 font-semibold tabular-nums">{value}</p></div>)}
+                  </div>
+                )}
                 {scheduleData.leaves.filter(l => l.status === 'PENDING').length > 0 && (
                   <div className="bg-[var(--warning)]/10 border border-[var(--warning)]/20 rounded-lg p-4 mb-4">
                     <h4 className="text-sm font-semibold text-[var(--warning)] mb-3">Pending Leave Requests</h4>
@@ -469,6 +491,9 @@ export default function DriversPage() {
       passportExpiryDate: toDateStr(driver.passportExpiryDate),
       visaExpiryDate: toDateStr(driver.visaExpiryDate),
       dateOfJoining: toDateStr(driver.dateOfJoining),
+      contractStartDate: toDateStr(driver.contractStartDate),
+      contractEndDate: toDateStr(driver.contractEndDate),
+      terminationDate: toDateStr(driver.terminationDate),
       licenseIssueDate: toDateStr(driver.licenseIssueDate),
       licenseExpiryDate: toDateStr(driver.licenseExpiryDate),
       tgaCardExpiry: toDateStr(driver.tgaCardExpiry),
@@ -972,6 +997,7 @@ export default function DriversPage() {
                       <option value="INACTIVE">Inactive</option>
                       <option value="ON_LEAVE">On Leave</option>
                       <option value="SUSPENDED">Suspended</option>
+                      <option value="TERMINATED">Terminated</option>
                     </select>
                   </Field>
                 </div>
@@ -984,6 +1010,42 @@ export default function DriversPage() {
                   </Field>
                   <Field label="GOSI Number">
                     <input className={inputClass} value={formData.gosiNumber} onChange={e => set('gosiNumber', e.target.value)} placeholder="Social insurance number" />
+                  </Field>
+                </div>
+
+                <h3 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider pt-2">Contract & Leave Entitlement</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <Field label="Contract Number">
+                    <input className={inputClass} value={formData.contractNumber} onChange={e => set('contractNumber', e.target.value)} placeholder="e.g. CTR-2026-001" />
+                  </Field>
+                  <Field label="Contract Start Date">
+                    <input type="date" className={inputClass} value={formData.contractStartDate} onChange={e => set('contractStartDate', e.target.value)} />
+                  </Field>
+                  <Field label="Contract End Date">
+                    <input type="date" className={inputClass} value={formData.contractEndDate} onChange={e => set('contractEndDate', e.target.value)} />
+                  </Field>
+                  <Field label="Notice Period (Days)">
+                    <input type="number" min="0" className={inputClass} value={formData.noticePeriodDays} onChange={e => set('noticePeriodDays', e.target.value)} placeholder="30" />
+                  </Field>
+                  <div className="col-span-3 rounded-md border border-[var(--border)] bg-[var(--surface)] p-3">
+                    <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={formData.usePlatformLeaveAllowance} onChange={e => set('usePlatformLeaveAllowance', e.target.checked)} /> Use platform annual leave allowance</label>
+                    <p className="mt-1 text-xs text-[var(--muted)]">Turn this off only when this driver needs a different annual leave entitlement.</p>
+                  </div>
+                  <Field label="Leave Allowance Override (Days/Year)">
+                    <input disabled={formData.usePlatformLeaveAllowance} type="number" min="0" className={inputClass + ' disabled:cursor-not-allowed disabled:opacity-50'} value={formData.annualLeaveAllowance} onChange={e => set('annualLeaveAllowance', e.target.value)} placeholder="Use platform default" />
+                  </Field>
+                  <Field label="Monthly Allowance Override (SAR)">
+                    <input type="number" min="0" step="0.01" className={inputClass} value={formData.monthlyAllowance} onChange={e => set('monthlyAllowance', e.target.value)} placeholder="Use platform default" />
+                  </Field>
+                </div>
+
+                <h3 className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider pt-2">Contract Ending</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Termination Date">
+                    <input type="date" className={inputClass} value={formData.terminationDate} onChange={e => set('terminationDate', e.target.value)} />
+                  </Field>
+                  <Field label="Termination Reason">
+                    <input className={inputClass} value={formData.terminationReason} onChange={e => set('terminationReason', e.target.value)} placeholder="Reason for ending employment" />
                   </Field>
                 </div>
 

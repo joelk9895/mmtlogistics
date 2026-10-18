@@ -22,6 +22,7 @@ type Driver = {
   phone?: string;
   status?: string;
   leaves?: { id: string; startDate: string; endDate: string; reason: string; status?: string }[];
+  currentLeaves?: { id: string; startDate: string; endDate: string; reason: string; status?: string }[];
 };
 
 type MaintenanceRecord = {
@@ -551,7 +552,7 @@ function VehicleDetail({ vehicle: initialVehicle, onClose, onRefresh }: { vehicl
                         )}
                         <div className="flex justify-between items-center pt-1 border-t border-[var(--border)]">
                           <span className="text-[var(--muted)]">Duty Status</span>
-                          {vehicle.assignedDriver.status === 'ON_LEAVE' || (vehicle.assignedDriver.leaves && vehicle.assignedDriver.leaves.length > 0) ? (
+                          {vehicle.assignedDriver.leaves && vehicle.assignedDriver.leaves.length > 0 ? (
                             <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
                               🏖️ On Leave
                             </span>
@@ -561,7 +562,7 @@ function VehicleDetail({ vehicle: initialVehicle, onClose, onRefresh }: { vehicl
                             </span>
                           )}
                         </div>
-                        {(vehicle.assignedDriver.status === 'ON_LEAVE' || (vehicle.assignedDriver.leaves && vehicle.assignedDriver.leaves.length > 0)) && (
+                        {vehicle.assignedDriver.leaves && vehicle.assignedDriver.leaves.length > 0 && (
                           <div className="mt-2 p-2.5 rounded bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200">
                             ⚠️ <strong>Primary driver on leave:</strong> Vehicle is temporarily available for a relief driver until primary driver returns.
                           </div>
@@ -1216,7 +1217,7 @@ export default function VehiclesPage() {
                     <select value={formData.assignedDriverId as string} onChange={e => setField('assignedDriverId', e.target.value)} className={inputClass}>
                       <option value="">— None (Unassigned) —</option>
                       {drivers.map(d => {
-                        const isOnLeave = d.status === 'ON_LEAVE' || (d.leaves && d.leaves.length > 0);
+                        const isOnLeave = Boolean(d.currentLeaves && d.currentLeaves.length > 0);
                         return (
                           <option key={d.id} value={d.id}>
                             {d.firstName} {d.lastName} ({d.employeeId}){isOnLeave ? ' ⚠️ [ON LEAVE]' : ' ✓'}
@@ -1640,7 +1641,7 @@ export default function VehiclesPage() {
                           <span className="font-medium text-[var(--foreground)]">
                             {vehicle.assignedDriver.firstName} {vehicle.assignedDriver.lastName}
                           </span>
-                          {vehicle.assignedDriver.status === 'ON_LEAVE' || (vehicle.assignedDriver.leaves && vehicle.assignedDriver.leaves.length > 0) ? (
+                          {vehicle.assignedDriver.leaves && vehicle.assignedDriver.leaves.length > 0 ? (
                             <span className="inline-flex items-center gap-1 text-[10px] text-amber-400 font-semibold" title="Driver is currently away on leave">
                               🏖️ On Leave
                             </span>

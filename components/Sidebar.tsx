@@ -12,6 +12,7 @@ const navItems = [
   { name: 'Drivers', href: '/admin/drivers', icon: '◉' },
   { name: 'Vehicles', href: '/admin/vehicles', icon: '▣' },
   { name: 'Vehicle Types', href: '/admin/vehicles/types', icon: '⬡' },
+  { name: 'Settings', href: '/admin/settings', icon: '⚙' },
 ];
 
 const quickActions = [

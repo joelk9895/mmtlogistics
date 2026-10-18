@@ -20,10 +20,19 @@ type Leave = {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
 };
 
+type LeaveBalance = {
+  year: number;
+  allowance: number;
+  approved: number;
+  pending: number;
+  remaining: number;
+};
+
 export default function DriverDashboard() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [leaves, setLeaves] = useState<Leave[]>([]);
+  const [leaveBalance, setLeaveBalance] = useState<LeaveBalance | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Modal states
@@ -39,6 +48,7 @@ export default function DriverDashboard() {
       .then((data) => {
         if (data.orders) setOrders(data.orders);
         if (data.leaves) setLeaves(data.leaves);
+        if (data.leaveBalance) setLeaveBalance(data.leaveBalance);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -104,6 +114,27 @@ export default function DriverDashboard() {
             </button>
           </div>
         </div>
+
+        {!loading && leaveBalance && (
+          <section aria-label="Leave balance" className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+              <p className="text-xs text-[var(--muted)]">{leaveBalance.year} annual leave</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{leaveBalance.allowance} <span className="text-sm font-normal text-[var(--muted)]">days</span></p>
+            </div>
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+              <p className="text-xs text-[var(--muted)]">Taken</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{leaveBalance.approved} <span className="text-sm font-normal text-[var(--muted)]">days</span></p>
+            </div>
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+              <p className="text-xs text-[var(--muted)]">Pending</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{leaveBalance.pending} <span className="text-sm font-normal text-[var(--muted)]">days</span></p>
+            </div>
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+              <p className="text-xs text-[var(--muted)]">Available</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums text-[var(--success)]">{leaveBalance.remaining} <span className="text-sm font-normal text-[var(--muted)]">days</span></p>
+            </div>
+          </section>
+        )}
 
         {loading ? (
           <div className="text-sm text-[var(--muted)]">Loading schedule...</div>

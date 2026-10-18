@@ -12,6 +12,20 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
+    const annualLeaveAllowance = body.annualLeaveAllowance === '' || body.annualLeaveAllowance === undefined
+      ? null
+      : Number(body.annualLeaveAllowance);
+    if (annualLeaveAllowance !== null && (!Number.isInteger(annualLeaveAllowance) || annualLeaveAllowance < 0)) {
+      return NextResponse.json({ error: 'Annual leave allowance must be a whole number of zero or more days.' }, { status: 400 });
+    }
+    const monthlyAllowance = body.monthlyAllowance === '' || body.monthlyAllowance === undefined ? null : Number(body.monthlyAllowance);
+    if (monthlyAllowance !== null && (!Number.isFinite(monthlyAllowance) || monthlyAllowance < 0)) {
+      return NextResponse.json({ error: 'Monthly allowance must be a non-negative number.' }, { status: 400 });
+    }
+    const usePlatformLeaveAllowance = body.usePlatformLeaveAllowance !== false;
+    if (body.contractStartDate && body.contractEndDate && new Date(body.contractEndDate) < new Date(body.contractStartDate)) {
+      return NextResponse.json({ error: 'Contract end date must be on or after the contract start date.' }, { status: 400 });
+    }
 
     const driver = await prisma.driver.update({
       where: { id },
@@ -65,6 +79,15 @@ export async function PUT(
         bankName: body.bankName || null,
         ibanNumber: body.ibanNumber || null,
         gosiNumber: body.gosiNumber || null,
+        contractStartDate: body.contractStartDate ? new Date(body.contractStartDate) : null,
+        contractEndDate: body.contractEndDate ? new Date(body.contractEndDate) : null,
+        contractNumber: body.contractNumber || null,
+        noticePeriodDays: body.noticePeriodDays ? parseInt(body.noticePeriodDays, 10) : null,
+        terminationDate: body.terminationDate ? new Date(body.terminationDate) : null,
+        terminationReason: body.terminationReason || null,
+        annualLeaveAllowance,
+        usePlatformLeaveAllowance,
+        monthlyAllowance,
         notes: body.notes || null,
 
         // License

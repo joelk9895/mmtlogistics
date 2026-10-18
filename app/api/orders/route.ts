@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { authenticate } from '@/lib/auth';
+import type { Prisma } from '@prisma/client';
 
 export async function GET(request: Request) {
   const authError = await authenticate(request);
@@ -64,6 +65,26 @@ async function generateTrackingNumber(): Promise<string> {
   return isNaN(lastNum) ? 'TRK-100001' : `TRK-${(lastNum + 1)}`;
 }
 
+type ScheduledOrder = {
+  scheduledPickup: Date | null;
+  scheduledDelivery: Date | null;
+  locations: { scheduledDate: Date | null }[];
+};
+
+function orderScheduleRange(order: ScheduledOrder): { start: Date; end: Date } | null {
+  const stopDates = order.locations
+    .map((location) => location.scheduledDate)
+    .filter((date): date is Date => date !== null)
+    .sort((a, b) => a.getTime() - b.getTime());
+  const start = stopDates[0] || order.scheduledPickup;
+  const end = stopDates.at(-1) || order.scheduledDelivery || start;
+  return start && end ? { start, end } : null;
+}
+
+function schedulesOverlap(first: { start: Date; end: Date }, second: { start: Date; end: Date }) {
+  return first.start <= second.end && first.end >= second.start;
+}
+
 export async function POST(request: Request) {
   const authError = await authenticate(request);
   if (authError) return authError;
@@ -73,10 +94,31 @@ export async function POST(request: Request) {
     if (providerType !== 'COMPANY' && providerType !== 'OUTSOURCE') {
       return NextResponse.json({ error: 'Service provider must be COMPANY or OUTSOURCE' }, { status: 400 });
     }
+    if (!String(body.customerId || '').trim()) {
+      return NextResponse.json({ error: 'Customer is required' }, { status: 400 });
+    }
+    if (!Array.isArray(body.locations) || body.locations.length < 2) {
+      return NextResponse.json({ error: 'A pickup and drop-off location are required' }, { status: 400 });
+    }
+    if (body.locations.some((location: unknown) =>
+      !location || typeof location !== 'object' || !String((location as { address?: unknown }).address || '').trim()
+    )) {
+      return NextResponse.json({ error: 'An address is required for every route stop' }, { status: 400 });
+    }
     const isCompanyFleet = providerType === 'COMPANY';
     if (!isCompanyFleet && !String(body.serviceProviderName || '').trim()) {
       return NextResponse.json({ error: 'Provider name is required for outsourced orders' }, { status: 400 });
     }
+
+    const scheduledStops = body.locations
+      .map((location: { scheduledDate?: unknown }) => location.scheduledDate ? new Date(String(location.scheduledDate)) : null);
+    const requiresAssignmentSchedule = isCompanyFleet && (body.assignedDriverId || body.assignedVehicleId);
+    if (requiresAssignmentSchedule && (!scheduledStops[0] || !scheduledStops.at(-1) || scheduledStops.some((date: Date | null) => date && Number.isNaN(date.getTime())))) {
+      return NextResponse.json({ error: 'Pickup and drop-off times are required before assigning a driver or vehicle.' }, { status: 400 });
+    }
+    const assignmentRange = requiresAssignmentSchedule
+      ? { start: scheduledStops[0]!, end: scheduledStops.at(-1)! }
+      : null;
 
     const customer = await prisma.customer.findUnique({
       where: { id: body.customerId },
@@ -99,10 +141,11 @@ export async function POST(request: Request) {
         where: { id: body.assignedDriverId },
         select: { status: true, leaves: { where: { status: 'APPROVED' }, select: { startDate: true, endDate: true } } },
       });
-      if (!driver || driver.status !== 'ACTIVE') {
+      if (!driver || !['ACTIVE', 'ON_LEAVE'].includes(driver.status)) {
         return NextResponse.json({ error: 'Selected driver is not active' }, { status: 400 });
       }
-      if (scheduledDate && driver.leaves.some(leave => scheduledDate >= leave.startDate && scheduledDate <= leave.endDate)) {
+      const assignmentDate = scheduledDate || new Date();
+      if (driver.leaves.some(leave => assignmentDate >= leave.startDate && assignmentDate <= leave.endDate)) {
         return NextResponse.json({ error: 'Selected driver is on approved leave for the scheduled date' }, { status: 400 });
       }
     }
@@ -112,6 +155,34 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Selected vehicle is not active' }, { status: 400 });
       }
     }
+
+    if (assignmentRange) {
+      const conflictSelect = {
+        id: true,
+        trackingNumber: true,
+        scheduledPickup: true,
+        scheduledDelivery: true,
+        locations: { select: { scheduledDate: true } },
+      } satisfies Prisma.OrderSelect;
+      const findActiveAssignments = (where: Prisma.OrderWhereInput) => prisma.order.findMany({
+        where: { ...where, status: { in: ['PENDING', 'IN_TRANSIT'] } },
+        select: conflictSelect,
+      });
+      const [driverOrders, vehicleOrders] = await Promise.all([
+        body.assignedDriverId ? findActiveAssignments({ assignedDriverId: body.assignedDriverId }) : [],
+        body.assignedVehicleId ? findActiveAssignments({ assignedVehicleId: body.assignedVehicleId }) : [],
+      ]);
+      const driverConflict = driverOrders.find((order) => {
+        const range = orderScheduleRange(order);
+        return range && schedulesOverlap(assignmentRange, range);
+      });
+      const vehicleConflict = vehicleOrders.find((order) => {
+        const range = orderScheduleRange(order);
+        return range && schedulesOverlap(assignmentRange, range);
+      });
+      if (driverConflict) return NextResponse.json({ error: `Selected driver is already assigned to ${driverConflict.trackingNumber} at this time.` }, { status: 409 });
+      if (vehicleConflict) return NextResponse.json({ error: `Selected vehicle is already assigned to ${vehicleConflict.trackingNumber} at this time.` }, { status: 409 });
+    }
     const trackingNumber = await generateTrackingNumber();
     const asOptionalNumber = (value: unknown) =>
       value === '' || value === null || value === undefined ? null : Number(value);
@@ -119,7 +190,7 @@ export async function POST(request: Request) {
       value ? new Date(String(value)) : null;
 
     // Check if we're using the new multi-location format
-    const isMultiLocation = Array.isArray(body.locations) && body.locations.length > 0;
+    const isMultiLocation = true;
     
     const data: any = {
       trackingNumber,
@@ -204,7 +275,7 @@ export async function POST(request: Request) {
             create: body.locations.map((location: any, index: number) => ({
               type: location.type || 'INTERMEDIATE',
               sequence: location.sequence !== undefined ? location.sequence : index,
-              address: location.address || '',
+              address: location.address.trim(),
               city: location.city || null,
               region: location.region || null,
               postalCode: location.postalCode || null,

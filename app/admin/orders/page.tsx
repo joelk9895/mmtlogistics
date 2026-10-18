@@ -411,6 +411,9 @@ function OrdersPageContent() {
     if (formData.locations.some(l => !l.address.trim())) { setLoadError('Add an address for every stop.'); setFormStep(2); return; }
     if (!formData.serviceProvider) { setLoadError('Choose a service provider.'); setFormStep(3); return; }
     if (isOutsourced && !formData.serviceProviderName.trim()) { setLoadError('Add the provider name.'); setFormStep(3); return; }
+    if (isCompanyFleet && (formData.assignedDriverId || formData.assignedVehicleId) && (!formData.locations[0]?.scheduledDate || !formData.locations.at(-1)?.scheduledDate)) {
+      setLoadError('Add pickup and drop-off times before assigning a driver or vehicle.'); setFormStep(2); return;
+    }
 
     setSubmitting(true);
     try {
@@ -982,6 +985,7 @@ function OrdersPageContent() {
                                   <Field label="Address" required>
                                     <div className="relative">
                                       <input
+                                        required
                                         className={inputClass}
                                         placeholder="Start typing to search…"
                                         value={location.address}
@@ -1028,8 +1032,8 @@ function OrdersPageContent() {
                                 <Field label="City">
                                   <input className={inputClass} placeholder="Riyadh" value={location.city} onChange={e => updateLocation(index, 'city', e.target.value)} />
                                 </Field>
-                                <Field label="Scheduled Date">
-                                  <input type="datetime-local" className={inputClass} value={location.scheduledDate} onChange={e => updateLocation(index, 'scheduledDate', e.target.value)} />
+                                <Field label={`Scheduled ${locType === 'PICKUP' ? 'Pickup' : locType === 'DROPOFF' ? 'Drop-off' : 'Time'}${isCompanyFleet && (formData.assignedDriverId || formData.assignedVehicleId) && (index === 0 || index === formData.locations.length - 1) ? ' *' : ''}`}>
+                                  <input required={Boolean(isCompanyFleet && (formData.assignedDriverId || formData.assignedVehicleId) && (index === 0 || index === formData.locations.length - 1))} type="datetime-local" className={inputClass} value={location.scheduledDate} onChange={e => updateLocation(index, 'scheduledDate', e.target.value)} />
                                 </Field>
 
                                 {/* Collapsed contact details */}
