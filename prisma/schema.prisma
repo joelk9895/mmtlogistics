@@ -427,6 +427,27 @@ model Vehicle {
   tireChangeKm        Float?           // Next tire rotation/change
   oilChangeKm         Float?           // Next oil change interval
 
+  // ── Financing & Ownership ──
+  ownershipType         String?           // OWNED, FINANCED, LEASED
+  financeProvider       String?           // Bank / leasing company name
+  financeAgreementNo    String?           // Agreement / contract number
+  monthlyPaymentSar     Float?            // Monthly instalment in SAR
+  downPaymentSar        Float?            // Initial down payment
+  totalFinanceAmount    Float?            // Total financed amount
+  remainingBalance      Float?            // Outstanding balance
+  financeStartDate      DateTime?         // Financing start
+  financeEndDate        DateTime?         // ⚠️ Financing end / maturity
+  interestRate          Float?            // Annual interest / profit rate %
+  balloonPaymentSar     Float?            // End-of-term balloon payment
+  financeNotes          String?           // Additional financing remarks
+
+  // ── Purchase Details ──
+  purchasePrice         Float?            // Original purchase price in SAR
+  purchaseDate          DateTime?         // Date of purchase
+  purchaseVendor        String?           // Dealer / vendor name
+  warrantyExpiry        DateTime?         // ⚠️ Manufacturer warranty end
+  depreciation          Float?            // Current depreciated value in SAR
+
   // ── Assignment ──
   assignedDriverId String?  @unique        // Primary assigned driver
   assignedDriver   Driver?  @relation("PrimaryVehicle", fields: [assignedDriverId], references: [id])

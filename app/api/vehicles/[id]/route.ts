@@ -65,6 +65,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       'insuranceProvider', 'insurancePolicyNo', 'insuranceType',
       'mvpiStation', 'mvpiResult',
       'notes', 'fleetNumber',
+      'ownershipType', 'financeProvider', 'financeAgreementNo', 'financeNotes', 'purchaseVendor',
     ] as const;
     const bodyObj = body as Record<string, any>;
     for (const f of stringFields) {
@@ -92,6 +93,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
       'capacity', 'grossVehicleWeight', 'netWeight', 'lengthMeters', 'widthMeters', 'heightMeters',
       'tankCapacityLiters', 'currentOdometerKm', 'averageDailyKm',
       'nextServiceDueKm', 'tireChangeKm', 'oilChangeKm',
+      'monthlyPaymentSar', 'downPaymentSar', 'totalFinanceAmount', 'remainingBalance',
+      'interestRate', 'balloonPaymentSar', 'purchasePrice', 'depreciation',
     ] as const;
     for (const f of floatFields) {
       if (f in bodyObj) (data as any)[f] = bodyObj[f] ? parseFloat(bodyObj[f]) : null;
@@ -105,6 +108,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       'insuranceStartDate', 'insuranceExpiryDate',
       'lastMvpiDate', 'nextMvpiDate', 'lastOdometerUpdate',
       'nextServiceDueDate',
+      'financeStartDate', 'financeEndDate', 'purchaseDate', 'warrantyExpiry',
     ] as const;
     for (const f of dateFields) {
       if (f in bodyObj) (data as any)[f] = bodyObj[f] ? new Date(bodyObj[f]) : null;

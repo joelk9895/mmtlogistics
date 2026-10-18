@@ -10,6 +10,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const type = searchParams.get('type');
+    const ownership = searchParams.get('ownership');
     const search = searchParams.get('search');
 
     const where: Prisma.VehicleWhereInput = {};
@@ -17,6 +18,7 @@ export async function GET(request: Request) {
       where.status = status as VehicleStatus;
     }
     if (type) where.vehicleType = type;
+    if (ownership) where.ownershipType = ownership;
     if (search) {
       where.OR = [
         { fleetNumber: { contains: search, mode: 'insensitive' } },
@@ -24,6 +26,8 @@ export async function GET(request: Request) {
         { model: { contains: search, mode: 'insensitive' } },
         { licensePlate: { contains: search, mode: 'insensitive' } },
         { chassisNumber: { contains: search, mode: 'insensitive' } },
+        { financeProvider: { contains: search, mode: 'insensitive' } },
+        { financeAgreementNo: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -124,6 +128,27 @@ export async function POST(request: Request) {
         nextServiceDueDate: body.nextServiceDueDate ? new Date(body.nextServiceDueDate) : null,
         tireChangeKm: body.tireChangeKm ? parseFloat(body.tireChangeKm) : null,
         oilChangeKm: body.oilChangeKm ? parseFloat(body.oilChangeKm) : null,
+
+        // Financing & Ownership
+        ownershipType: body.ownershipType || null,
+        financeProvider: body.financeProvider || null,
+        financeAgreementNo: body.financeAgreementNo || null,
+        monthlyPaymentSar: body.monthlyPaymentSar ? parseFloat(body.monthlyPaymentSar) : null,
+        downPaymentSar: body.downPaymentSar ? parseFloat(body.downPaymentSar) : null,
+        totalFinanceAmount: body.totalFinanceAmount ? parseFloat(body.totalFinanceAmount) : null,
+        remainingBalance: body.remainingBalance ? parseFloat(body.remainingBalance) : null,
+        financeStartDate: body.financeStartDate ? new Date(body.financeStartDate) : null,
+        financeEndDate: body.financeEndDate ? new Date(body.financeEndDate) : null,
+        interestRate: body.interestRate ? parseFloat(body.interestRate) : null,
+        balloonPaymentSar: body.balloonPaymentSar ? parseFloat(body.balloonPaymentSar) : null,
+        financeNotes: body.financeNotes || null,
+
+        // Purchase Details
+        purchasePrice: body.purchasePrice ? parseFloat(body.purchasePrice) : null,
+        purchaseDate: body.purchaseDate ? new Date(body.purchaseDate) : null,
+        purchaseVendor: body.purchaseVendor || null,
+        warrantyExpiry: body.warrantyExpiry ? new Date(body.warrantyExpiry) : null,
+        depreciation: body.depreciation ? parseFloat(body.depreciation) : null,
 
         assignedDriverId: body.assignedDriverId || null,
         notes: body.notes || null,

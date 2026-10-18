@@ -138,6 +138,25 @@ type Vehicle = {
   assignedDriverId: string | null;
   assignedDriver: Driver | null;
   notes: string | null;
+  // Financing & Ownership
+  ownershipType: string | null;
+  financeProvider: string | null;
+  financeAgreementNo: string | null;
+  monthlyPaymentSar: number | null;
+  downPaymentSar: number | null;
+  totalFinanceAmount: number | null;
+  remainingBalance: number | null;
+  financeStartDate: string | null;
+  financeEndDate: string | null;
+  interestRate: number | null;
+  balloonPaymentSar: number | null;
+  financeNotes: string | null;
+  // Purchase Details
+  purchasePrice: number | null;
+  purchaseDate: string | null;
+  purchaseVendor: string | null;
+  warrantyExpiry: string | null;
+  depreciation: number | null;
   createdAt: string;
   updatedAt: string;
   _count?: { maintenanceRecords: number; fuelLogs: number; orders: number };
@@ -194,10 +213,16 @@ const INSURANCE_TYPES: Record<string, string> = {
   COMPREHENSIVE: 'Comprehensive', THIRD_PARTY: 'Third Party', AGAINST_OTHERS: 'Against Others',
 };
 
-const FORM_TABS = ['Identity', 'Registration', 'Specs & Fuel', 'Regulatory', 'Insurance & MVPI', 'Maintenance'] as const;
+const OWNERSHIP_TYPES: Record<string, string> = {
+  OWNED: 'Owned (Fully Paid)',
+  FINANCED: 'Financed (Loan)',
+  LEASED: 'Leased',
+};
+
+const FORM_TABS = ['Identity', 'Registration', 'Specs & Fuel', 'Regulatory', 'Insurance & MVPI', 'Financing', 'Maintenance'] as const;
 type FormTab = typeof FORM_TABS[number];
 
-const DETAIL_TABS = ['Overview', 'Maintenance', 'Fuel', 'Documents', 'Inspections'] as const;
+const DETAIL_TABS = ['Overview', 'Financing', 'Maintenance', 'Fuel', 'Documents', 'Inspections'] as const;
 type DetailTab = typeof DETAIL_TABS[number];
 
 // ── Reusable Components ──
@@ -556,6 +581,86 @@ function VehicleDetail({ vehicle: initialVehicle, onClose, onRefresh }: { vehicl
                 )}
               </div>
             )}
+            {/* ═══ FINANCING TAB ═══ */}
+            {activeTab === 'Financing' && (
+              <div className="space-y-6">
+                {/* Ownership Quick Summary */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">🏷️</span>
+                      <span className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Ownership</span>
+                    </div>
+                    <p className="text-lg font-bold">{vehicle.ownershipType ? OWNERSHIP_TYPES[vehicle.ownershipType] || vehicle.ownershipType : '—'}</p>
+                  </div>
+                  <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">💰</span>
+                      <span className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Purchase Price</span>
+                    </div>
+                    <p className="text-lg font-bold tabular-nums">{vehicle.purchasePrice ? `SAR ${vehicle.purchasePrice.toLocaleString()}` : '—'}</p>
+                    {vehicle.depreciation && (
+                      <p className="text-xs text-[var(--muted)] mt-0.5">Current value: SAR {vehicle.depreciation.toLocaleString()}</p>
+                    )}
+                  </div>
+                  <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-lg">📅</span>
+                      <span className="text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Monthly Payment</span>
+                    </div>
+                    <p className="text-lg font-bold tabular-nums">{vehicle.monthlyPaymentSar ? `SAR ${vehicle.monthlyPaymentSar.toLocaleString()}` : '—'}</p>
+                    {vehicle.remainingBalance != null && vehicle.remainingBalance > 0 && (
+                      <p className="text-xs text-amber-400 mt-0.5">Balance: SAR {vehicle.remainingBalance.toLocaleString()}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Purchase Details */}
+                <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-3">🛒 Purchase Details</h3>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                    <div className="flex justify-between"><span className="text-[var(--muted)]">Purchase Price</span><span className="font-medium tabular-nums">{vehicle.purchasePrice ? `SAR ${vehicle.purchasePrice.toLocaleString()}` : '—'}</span></div>
+                    <div className="flex justify-between"><span className="text-[var(--muted)]">Purchase Date</span><span>{formatDate(vehicle.purchaseDate)}</span></div>
+                    <div className="flex justify-between"><span className="text-[var(--muted)]">Vendor / Dealer</span><span>{vehicle.purchaseVendor || '—'}</span></div>
+                    <div className="flex justify-between"><span className="text-[var(--muted)]">Depreciated Value</span><span className="tabular-nums">{vehicle.depreciation ? `SAR ${vehicle.depreciation.toLocaleString()}` : '—'}</span></div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                    <ExpiryIndicator date={vehicle.warrantyExpiry} label="Warranty Expiry" />
+                  </div>
+                </div>
+
+                {/* Finance / Lease Terms */}
+                {(vehicle.ownershipType === 'FINANCED' || vehicle.ownershipType === 'LEASED' || vehicle.financeProvider) ? (
+                  <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-4">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] mb-3">🏦 Finance / Lease Terms</h3>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                      <div className="flex justify-between"><span className="text-[var(--muted)]">Finance Provider</span><span className="font-medium">{vehicle.financeProvider || '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-[var(--muted)]">Agreement No.</span><span className="font-mono text-xs">{vehicle.financeAgreementNo || '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-[var(--muted)]">Total Financed</span><span className="tabular-nums">{vehicle.totalFinanceAmount ? `SAR ${vehicle.totalFinanceAmount.toLocaleString()}` : '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-[var(--muted)]">Down Payment</span><span className="tabular-nums">{vehicle.downPaymentSar ? `SAR ${vehicle.downPaymentSar.toLocaleString()}` : '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-[var(--muted)]">Monthly Payment</span><span className="font-medium tabular-nums">{vehicle.monthlyPaymentSar ? `SAR ${vehicle.monthlyPaymentSar.toLocaleString()}` : '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-[var(--muted)]">Interest / Profit Rate</span><span>{vehicle.interestRate != null ? `${vehicle.interestRate}%` : '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-[var(--muted)]">Balloon Payment</span><span className="tabular-nums">{vehicle.balloonPaymentSar ? `SAR ${vehicle.balloonPaymentSar.toLocaleString()}` : '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-[var(--muted)]">Remaining Balance</span><span className={`font-medium tabular-nums ${vehicle.remainingBalance && vehicle.remainingBalance > 0 ? 'text-amber-400' : ''}`}>{vehicle.remainingBalance != null ? `SAR ${vehicle.remainingBalance.toLocaleString()}` : '—'}</span></div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-[var(--border)] flex gap-6">
+                      <ExpiryIndicator date={vehicle.financeStartDate} label="Start" />
+                      <ExpiryIndicator date={vehicle.financeEndDate} label="Maturity" />
+                    </div>
+                    {vehicle.financeNotes && (
+                      <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                        <p className="text-xs text-[var(--muted)] uppercase font-medium mb-1">Notes</p>
+                        <p className="text-sm">{vehicle.financeNotes}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 text-center">
+                    <p className="text-sm text-[var(--muted)]">No financing details recorded. {vehicle.ownershipType === 'OWNED' ? 'This vehicle is fully owned.' : 'Edit the vehicle to add financing information.'}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* ═══ MAINTENANCE TAB ═══ */}
             {activeTab === 'Maintenance' && (
@@ -848,6 +953,7 @@ export default function VehiclesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [filterOwnership, setFilterOwnership] = useState('');
 
   // Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -874,6 +980,12 @@ export default function VehiclesPage() {
     insuranceProvider: '', insurancePolicyNo: '', insuranceType: 'COMPREHENSIVE', insuranceStartDate: '', insuranceExpiryDate: '',
     lastMvpiDate: '', nextMvpiDate: '', mvpiStation: '', mvpiResult: '',
     currentOdometerKm: '', nextServiceDueKm: '', nextServiceDueDate: '', tireChangeKm: '', oilChangeKm: '',
+    // Financing & Ownership
+    ownershipType: '', financeProvider: '', financeAgreementNo: '',
+    monthlyPaymentSar: '', downPaymentSar: '', totalFinanceAmount: '', remainingBalance: '',
+    financeStartDate: '', financeEndDate: '', interestRate: '', balloonPaymentSar: '', financeNotes: '',
+    // Purchase Details
+    purchasePrice: '', purchaseDate: '', purchaseVendor: '', warrantyExpiry: '', depreciation: '',
     assignedDriverId: '', notes: '',
   };
 
@@ -885,6 +997,7 @@ export default function VehiclesPage() {
       if (searchQuery) params.set('search', searchQuery);
       if (filterStatus) params.set('status', filterStatus);
       if (filterType) params.set('type', filterType);
+      if (filterOwnership) params.set('ownership', filterOwnership);
       const res = await fetch(`/api/vehicles?${params.toString()}`);
       const data = await res.json();
       setVehicles(data);
@@ -916,7 +1029,7 @@ export default function VehiclesPage() {
     fetchDrivers();
     fetchCategories();
   }, []);
-  useEffect(() => { setLoading(true); fetchVehicles(); }, [searchQuery, filterStatus, filterType]);
+  useEffect(() => { setLoading(true); fetchVehicles(); }, [searchQuery, filterStatus, filterType, filterOwnership]);
 
   const typeDisplayMap: Record<string, string> = {
     ...VEHICLE_TYPES,
@@ -956,19 +1069,23 @@ export default function VehiclesPage() {
     // Populate form from vehicle
     const stringFields = ['make', 'model', 'color', 'vehicleType', 'photoUrl', 'licensePlate', 'chassisNumber', 'engineNumber',
       'istimaraNumber', 'registrationCity', 'fuelType', 'transmissionType', 'tgaOperationCardNumber', 'waselTrackerId',
-      'insuranceProvider', 'insurancePolicyNo', 'insuranceType', 'mvpiStation', 'mvpiResult', 'assignedDriverId', 'notes', 'fleetNumber'];
+      'insuranceProvider', 'insurancePolicyNo', 'insuranceType', 'mvpiStation', 'mvpiResult', 'assignedDriverId', 'notes', 'fleetNumber',
+      'ownershipType', 'financeProvider', 'financeAgreementNo', 'financeNotes', 'purchaseVendor'];
     for (const f of stringFields) {
       const val = vehicle[f as keyof Vehicle];
       fd[f] = (val as string) || '';
     }
     const numFields = ['year', 'numberOfAxles', 'engineCapacityCC', 'horsePower', 'speedLimitKmh', 'capacity', 'grossVehicleWeight',
       'netWeight', 'lengthMeters', 'widthMeters', 'heightMeters', 'tankCapacityLiters', 'currentOdometerKm', 'averageDailyKm',
-      'nextServiceDueKm', 'tireChangeKm', 'oilChangeKm'];
+      'nextServiceDueKm', 'tireChangeKm', 'oilChangeKm',
+      'monthlyPaymentSar', 'downPaymentSar', 'totalFinanceAmount', 'remainingBalance', 'interestRate', 'balloonPaymentSar',
+      'purchasePrice', 'depreciation'];
     for (const f of numFields) {
       const val = vehicle[f as keyof Vehicle];
       fd[f] = val !== null && val !== undefined ? String(val) : '';
     }
-    const dateFields = ['istimaraExpiry', 'tgaOperationCardExpiry', 'insuranceStartDate', 'insuranceExpiryDate', 'lastMvpiDate', 'nextMvpiDate', 'nextServiceDueDate'];
+    const dateFields = ['istimaraExpiry', 'tgaOperationCardExpiry', 'insuranceStartDate', 'insuranceExpiryDate', 'lastMvpiDate', 'nextMvpiDate', 'nextServiceDueDate',
+      'financeStartDate', 'financeEndDate', 'purchaseDate', 'warrantyExpiry'];
     for (const f of dateFields) {
       const val = vehicle[f as keyof Vehicle];
       fd[f] = val ? new Date(val as string).toISOString().split('T')[0] : '';
@@ -998,8 +1115,12 @@ export default function VehiclesPage() {
     if (isExpiringSoon(v.insuranceExpiryDate) !== 'ok') acc++;
     if (isExpiringSoon(v.tgaOperationCardExpiry) !== 'ok') acc++;
     if (isExpiringSoon(v.nextMvpiDate) !== 'ok') acc++;
+    if (v.financeEndDate && isExpiringSoon(v.financeEndDate) !== 'ok') acc++;
     return acc;
   }, 0);
+
+  const financedCount = vehicles.filter(v => v.ownershipType === 'FINANCED' || v.ownershipType === 'LEASED').length;
+  const totalMonthlyCommitment = vehicles.reduce((s, v) => s + (v.monthlyPaymentSar || 0), 0);
 
   return (
     <div>
@@ -1029,12 +1150,18 @@ export default function VehiclesPage() {
       </div>
 
       {/* ── Fleet Stats ── */}
-      <div className="grid grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-6 gap-3 mb-6">
         <StatCard icon="🚛" label="Total Fleet" value={`${vehicles.length}`} />
         <StatCard icon="✓" label="Active" value={`${vehicles.filter(v => v.status === 'ACTIVE').length}`} />
         <StatCard icon="🔧" label="In Maintenance" value={`${vehicles.filter(v => v.status === 'IN_MAINTENANCE').length}`} />
         <StatCard icon="⚠" label="Out of Service" value={`${vehicles.filter(v => v.status === 'OUT_OF_SERVICE').length}`} />
         <StatCard icon="🔴" label="Compliance Alerts" value={`${complianceAlerts}`} />
+        <StatCard
+          icon="💳"
+          label="Financed / Leased"
+          value={`${financedCount}`}
+          sub={totalMonthlyCommitment > 0 ? `SAR ${totalMonthlyCommitment.toLocaleString()}/mo` : `${vehicles.filter(v => v.ownershipType === 'OWNED').length} Owned`}
+        />
       </div>
 
       {/* ── Add/Edit Form ── */}
@@ -1275,6 +1402,82 @@ export default function VehiclesPage() {
               </div>
             )}
 
+            {/* Financing Tab */}
+            {formTab === 'Financing' && (
+              <div className="space-y-5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">Ownership & Purchase</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <Field label="Ownership Type">
+                    <select value={formData.ownershipType as string} onChange={e => setField('ownershipType', e.target.value)} className={inputClass}>
+                      <option value="">— Select —</option>
+                      {Object.entries(OWNERSHIP_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Purchase Price (SAR)">
+                    <input type="number" step="0.01" value={formData.purchasePrice as string} onChange={e => setField('purchasePrice', e.target.value)} className={inputClass} placeholder="450,000" />
+                  </Field>
+                  <Field label="Purchase Date">
+                    <input type="date" value={formData.purchaseDate as string} onChange={e => setField('purchaseDate', e.target.value)} className={inputClass} />
+                  </Field>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <Field label="Purchase Vendor / Dealer">
+                    <input value={formData.purchaseVendor as string} onChange={e => setField('purchaseVendor', e.target.value)} className={inputClass} placeholder="Al Jazirah Vehicles" />
+                  </Field>
+                  <Field label="Warranty Expiry">
+                    <input type="date" value={formData.warrantyExpiry as string} onChange={e => setField('warrantyExpiry', e.target.value)} className={inputClass} />
+                  </Field>
+                  <Field label="Current Depreciated Value (SAR)">
+                    <input type="number" step="0.01" value={formData.depreciation as string} onChange={e => setField('depreciation', e.target.value)} className={inputClass} placeholder="320,000" />
+                  </Field>
+                </div>
+
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] pt-2">Finance / Lease Terms</h3>
+                <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+                  <p className="text-xs text-[var(--muted)] mb-3">Fill these fields only if the vehicle is financed or leased.</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <Field label="Finance Provider">
+                      <input value={formData.financeProvider as string} onChange={e => setField('financeProvider', e.target.value)} className={inputClass} placeholder="Al Rajhi Bank" />
+                    </Field>
+                    <Field label="Agreement / Contract No.">
+                      <input value={formData.financeAgreementNo as string} onChange={e => setField('financeAgreementNo', e.target.value)} className={inputClass} placeholder="FIN-2024-00123" />
+                    </Field>
+                    <Field label="Interest / Profit Rate (%)">
+                      <input type="number" step="0.01" value={formData.interestRate as string} onChange={e => setField('interestRate', e.target.value)} className={inputClass} placeholder="3.5" />
+                    </Field>
+                  </div>
+                  <div className="grid grid-cols-4 gap-4 mt-3">
+                    <Field label="Total Financed (SAR)">
+                      <input type="number" step="0.01" value={formData.totalFinanceAmount as string} onChange={e => setField('totalFinanceAmount', e.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label="Down Payment (SAR)">
+                      <input type="number" step="0.01" value={formData.downPaymentSar as string} onChange={e => setField('downPaymentSar', e.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label="Monthly Payment (SAR)">
+                      <input type="number" step="0.01" value={formData.monthlyPaymentSar as string} onChange={e => setField('monthlyPaymentSar', e.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label="Balloon Payment (SAR)">
+                      <input type="number" step="0.01" value={formData.balloonPaymentSar as string} onChange={e => setField('balloonPaymentSar', e.target.value)} className={inputClass} />
+                    </Field>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mt-3">
+                    <Field label="Remaining Balance (SAR)">
+                      <input type="number" step="0.01" value={formData.remainingBalance as string} onChange={e => setField('remainingBalance', e.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label="Finance Start Date">
+                      <input type="date" value={formData.financeStartDate as string} onChange={e => setField('financeStartDate', e.target.value)} className={inputClass} />
+                    </Field>
+                    <Field label="Finance End Date">
+                      <input type="date" value={formData.financeEndDate as string} onChange={e => setField('financeEndDate', e.target.value)} className={inputClass} />
+                    </Field>
+                  </div>
+                </div>
+                <Field label="Finance Notes">
+                  <textarea value={formData.financeNotes as string} onChange={e => setField('financeNotes', e.target.value)} className={`${inputClass} h-16 resize-none`} placeholder="Additional financing remarks, special conditions..." />
+                </Field>
+              </div>
+            )}
+
             {/* Maintenance Tab */}
             {formTab === 'Maintenance' && (
               <div className="space-y-5">
@@ -1356,6 +1559,10 @@ export default function VehiclesPage() {
             ? categories.map(c => <option key={c.slug} value={c.slug}>{c.icon ? `${c.icon} ` : ''}{c.name}</option>)
             : Object.entries(VEHICLE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
+        <select value={filterOwnership} onChange={e => setFilterOwnership(e.target.value)} className={`${inputClass} w-40`}>
+          <option value="">All Ownership</option>
+          {Object.entries(OWNERSHIP_TYPES).map(([k, v]) => <option key={k} value={k}>{v.split(' (')[0]}</option>)}
+        </select>
       </div>
 
       {/* ── Vehicles Table ── */}
@@ -1366,6 +1573,7 @@ export default function VehiclesPage() {
               <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Vehicle</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Plate</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Type</th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Ownership</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Status</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Driver</th>
               <th className="text-left px-4 py-3 text-xs font-medium text-[var(--muted)] uppercase tracking-wider">Compliance</th>
@@ -1375,9 +1583,9 @@ export default function VehiclesPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-[var(--muted)]">Loading fleet data...</td></tr>
+              <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-[var(--muted)]">Loading fleet data...</td></tr>
             ) : vehicles.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-[var(--muted)]">No vehicles found. Click &quot;Add Vehicle&quot; to register your first vehicle.</td></tr>
+              <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-[var(--muted)]">No vehicles found. Click &quot;Add Vehicle&quot; to register your first vehicle.</td></tr>
             ) : (
               vehicles.map((vehicle, i) => {
                 // Calculate compliance alerts for this vehicle
@@ -1388,6 +1596,8 @@ export default function VehiclesPage() {
                 else if (isExpiringSoon(vehicle.insuranceExpiryDate) === 'warning') alerts.push('Insurance expiring');
                 if (isExpiringSoon(vehicle.tgaOperationCardExpiry) !== 'ok') alerts.push('TGA');
                 if (isExpiringSoon(vehicle.nextMvpiDate) !== 'ok') alerts.push('MVPI');
+                if (vehicle.financeEndDate && isExpiringSoon(vehicle.financeEndDate) !== 'ok') alerts.push('Finance maturity');
+                if (vehicle.warrantyExpiry && isExpiringSoon(vehicle.warrantyExpiry) !== 'ok') alerts.push('Warranty');
 
                 return (
                   <tr
@@ -1408,6 +1618,21 @@ export default function VehiclesPage() {
                     </td>
                     <td className="px-4 py-3 text-sm font-mono text-xs text-[var(--muted)]">{vehicle.licensePlate}</td>
                     <td className="px-4 py-3 text-xs">{typeDisplayMap[vehicle.vehicleType] || vehicle.vehicleType}</td>
+                    <td className="px-4 py-3 text-xs">
+                      {vehicle.ownershipType ? (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium ${
+                          vehicle.ownershipType === 'OWNED'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : vehicle.ownershipType === 'FINANCED'
+                            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                            : 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                        }`}>
+                          {vehicle.ownershipType === 'OWNED' ? 'Owned' : vehicle.ownershipType === 'FINANCED' ? 'Financed' : 'Leased'}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--muted)]/50">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3"><StatusBadge status={vehicle.status} /></td>
                     <td className="px-4 py-3 text-xs">
                       {vehicle.assignedDriver ? (
