@@ -1,14 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-// Default host for development:
-// - Android Emulator uses 10.0.2.2 to access host machine localhost
-// - iOS Simulator uses localhost
-// - Physical device can change this in settings
-const DEFAULT_HOST = Platform.select({
-  android: 'http://10.0.2.2:3000',
-  default: 'http://localhost:3000',
-});
+// Default production backend host (Vercel)
+const DEFAULT_HOST = 'https://mmtlogistics.vercel.app';
 
 const TOKEN_KEY = 'driver_auth_token';
 const SERVER_URL_KEY = 'driver_server_url';
@@ -21,13 +15,21 @@ class ApiService {
     try {
       if (Platform.OS !== 'web') {
         const savedUrl = await SecureStore.getItemAsync(SERVER_URL_KEY);
-        if (savedUrl) this.baseUrl = savedUrl;
+        if (savedUrl && !savedUrl.includes('localhost') && !savedUrl.includes('10.0.2.2')) {
+          this.baseUrl = savedUrl;
+        } else {
+          this.baseUrl = DEFAULT_HOST;
+        }
 
         const savedToken = await SecureStore.getItemAsync(TOKEN_KEY);
         if (savedToken) this.token = savedToken;
       } else {
         const savedUrl = localStorage.getItem(SERVER_URL_KEY);
-        if (savedUrl) this.baseUrl = savedUrl;
+        if (savedUrl && !savedUrl.includes('localhost') && !savedUrl.includes('10.0.2.2')) {
+          this.baseUrl = savedUrl;
+        } else {
+          this.baseUrl = DEFAULT_HOST;
+        }
 
         const savedToken = localStorage.getItem(TOKEN_KEY);
         if (savedToken) this.token = savedToken;

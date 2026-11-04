@@ -193,7 +193,7 @@ export default function LoginScreen() {
                 style={styles.configInput}
                 value={tempUrl}
                 onChangeText={setTempUrl}
-                placeholder="http://192.168.1.50:3000"
+                placeholder="https://mmtlogistics.vercel.app"
                 placeholderTextColor="#636366"
                 autoCapitalize="none"
               />

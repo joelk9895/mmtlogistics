@@ -17,6 +17,7 @@ import {
 import { api } from '@/services/api';
 import { AppleSymbol } from '@/components/glass/AppleSymbol';
 import { Fonts, MinimalTheme } from '@/constants/theme';
+import CalendarPicker, { getDaysCount } from '@/components/CalendarPicker';
 
 interface LeaveRecord {
   id: string;
@@ -82,17 +83,16 @@ export default function LeavesScreen() {
   };
 
   const handleSubmitRequest = async () => {
-    if (!startDate.trim() || !endDate.trim() || !reason.trim()) {
-      Alert.alert('Required Fields', 'Please specify start date, end date, and reason for leave.');
+    if (!startDate || !endDate || !reason.trim()) {
+      Alert.alert('Required Fields', 'Please select leave dates on the calendar and enter a reason.');
       return;
     }
 
-    const s = new Date(startDate.trim());
-    const e = new Date(endDate.trim());
-    if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) {
-      Alert.alert('Invalid Format', 'Please use YYYY-MM-DD date format (e.g. 2026-11-15).');
-      return;
-    }
+    const [y1, m1, d1] = startDate.split('-').map(Number);
+    const [y2, m2, d2] = endDate.split('-').map(Number);
+    const s = new Date(Date.UTC(y1, m1 - 1, d1, 0, 0, 0));
+    const e = new Date(Date.UTC(y2, m2 - 1, d2, 23, 59, 59));
+
     if (e < s) {
       Alert.alert('Invalid Dates', 'End date must be on or after the start date.');
       return;
@@ -250,36 +250,20 @@ export default function LeavesScreen() {
                   <Text style={styles.sheetSubtitle}>Submit dates for supervisor and fleet HR sign-off</Text>
 
                   <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
-                    <Text style={styles.inputHeading}>START DATE (YYYY-MM-DD) *</Text>
-                    <TextInput
-                      style={styles.iosInput}
-                      placeholder="2026-11-01"
-                      placeholderTextColor="#636366"
-                      value={startDate}
-                      onChangeText={setStartDate}
+                    <Text style={styles.inputHeading}>PICK LEAVE DATES *</Text>
+                    <CalendarPicker
+                      startDate={startDate}
+                      endDate={endDate}
+                      onSelectRange={(start, end) => {
+                        setStartDate(start);
+                        setEndDate(end);
+                      }}
+                      remainingQuota={balance?.remaining}
                     />
-
-                    <Text style={styles.inputHeading}>END DATE (YYYY-MM-DD) *</Text>
-                    <TextInput
-                      style={styles.iosInput}
-                      placeholder="2026-11-07"
-                      placeholderTextColor="#636366"
-                      value={endDate}
-                      onChangeText={setEndDate}
-                    />
-
-                    {startDate && endDate && calculateDays(startDate, endDate) > 0 && (
-                      <View style={styles.daysBadgeRow}>
-                        <AppleSymbol iosName="clock.fill" fallbackName="time" size={13} color="#0A84FF" />
-                        <Text style={styles.daysBadgeText}>
-                          Duration: {calculateDays(startDate, endDate)} days
-                        </Text>
-                      </View>
-                    )}
 
                     <Text style={styles.inputHeading}>REASON / REMARKS *</Text>
                     <TextInput
-                      style={[styles.iosInput, { height: 80, textAlignVertical: 'top' }]}
+                      style={[styles.iosInput, { height: 74, textAlignVertical: 'top' }]}
                       placeholder="Annual vacation, family obligations, medical..."
                       placeholderTextColor="#636366"
                       multiline
@@ -291,15 +275,19 @@ export default function LeavesScreen() {
                       style={[
                         styles.iosPrimaryButton,
                         { marginTop: 18 },
-                        submitting && { opacity: 0.6 },
+                        (!startDate || !endDate || !reason.trim() || submitting) && { opacity: 0.6 },
                       ]}
                       onPress={handleSubmitRequest}
-                      disabled={submitting}
+                      disabled={!startDate || !endDate || !reason.trim() || submitting}
                     >
                       {submitting ? (
                         <ActivityIndicator color="#FFFFFF" />
                       ) : (
-                        <Text style={styles.iosPrimaryButtonText}>Submit Leave Application</Text>
+                        <Text style={styles.iosPrimaryButtonText}>
+                          {startDate && endDate
+                            ? `Submit Application (${getDaysCount(startDate, endDate)} ${getDaysCount(startDate, endDate) === 1 ? 'Day' : 'Days'})`
+                            : 'Select Dates to Submit'}
+                        </Text>
                       )}
                     </TouchableOpacity>
 
@@ -444,6 +432,7 @@ const styles = StyleSheet.create({
     backgroundColor: MinimalTheme.sheetBg,
     borderWidth: 1,
     borderColor: MinimalTheme.cardBorder,
+    maxHeight: '92%',
   },
   sheetGrabberBar: {
     width: 36,
